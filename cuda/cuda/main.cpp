@@ -1,8 +1,4 @@
-#include <iostream>
-#include <stdlib.h>
-#include "cudaTest.h"
-#include "opencvTest.h"
-//#include <opencv2/opencv.hpp>
+#include "main.h"
 
 
 
