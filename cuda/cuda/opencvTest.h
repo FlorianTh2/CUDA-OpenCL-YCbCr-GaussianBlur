@@ -5,8 +5,13 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-using namespace cv;
 using namespace std;
 
 
-void readImage();
+cv::Mat readImage();
+void displayImage(cv::Mat mat);
+void mainInOpencv();
+cv::Mat convertBRGToYcbcr(cv::Mat mat);
+cv::Mat convertYcbcrToBRG(cv::Mat mat);
+cv::Mat changeYcbcrStyle(cv::Mat mat);
+void analyseMatInput(cv::Mat mat);
