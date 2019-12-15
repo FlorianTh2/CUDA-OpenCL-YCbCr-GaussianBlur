@@ -81,12 +81,22 @@ vector<uchar> returnMatDataWithVector(cv::Mat mat)
 
 }
 
+uchar * returnMatDataWithCharArray(cv::Mat mat)
+{
+	return mat.data;
+}
+
 void printCharArray(vector<uchar> mat)
 {
 	for (int i = 0; i < mat.size(); i++)
 	{
 		printf("%d ", mat[i]);
 	}
+}
+
+uchar* readImageAndReturnCharArray()
+{
+	return returnMatDataWithCharArray(readImage());
 }
 
 void mainInOpencv() {

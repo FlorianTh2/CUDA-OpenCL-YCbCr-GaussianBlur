@@ -1,5 +1,7 @@
 #include "cudaTest.cuh"
 
+
+
 __global__ void test()
 {
 
@@ -13,3 +15,21 @@ void doSmth()
 	test << < 1, 1 >> > ();
 	return;
 }
+
+void convertBGRToYCBCR(unsigned char* data)
+{
+
+
+
+
+
+
+	return;
+}
+
+void cudaMain(unsigned char* data)
+{
+	doSmth();
+	convertBGRToYCBCR(data);
+}
+

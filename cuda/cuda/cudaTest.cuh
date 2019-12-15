@@ -5,8 +5,11 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-//__global__ void test();
+using namespace std;
+
 __global__ void test();
 
 
 void doSmth();
+void convertBGRToYCBCR(unsigned char* data);
+void cudaMain(unsigned char* data);

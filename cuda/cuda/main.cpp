@@ -1,21 +1,22 @@
 #include "main.h"
 
 
-
 int main(int argc, char** argv)
 {
+	std::cout << "start main-function" << std::endl;
+
+
+	uchar* data = readImageAndReturnCharArray();
+
+
 	Timer timer;
 	timer.start();
-
-	std::cout << "Hi from main-function" << std::endl;
-	doSmth();
-
+	cudaMain(data);
 	timer.stop();
 	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
 
 
 
-	mainInOpencv();
 
 
 

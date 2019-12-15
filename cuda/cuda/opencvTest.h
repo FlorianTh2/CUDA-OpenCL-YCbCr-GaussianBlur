@@ -19,3 +19,5 @@ std::string GetMatType(const cv::Mat& mat);
 void analyseMatInput(cv::Mat mat);
 void printCharArray(vector<uchar> mat);
 vector<uchar> returnMatDataWithVector(cv::Mat mat);
+uchar* returnMatDataWithCharArray(cv::Mat mat);
+uchar* readImageAndReturnCharArray();
