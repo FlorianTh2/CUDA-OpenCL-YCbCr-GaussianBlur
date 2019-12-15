@@ -14,4 +14,8 @@ void mainInOpencv();
 cv::Mat convertBRGToYcbcr(cv::Mat mat);
 cv::Mat convertYcbcrToBRG(cv::Mat mat);
 cv::Mat changeYcbcrStyle(cv::Mat mat);
+std::string GetMatDepth(const cv::Mat& mat);
+std::string GetMatType(const cv::Mat& mat);
 void analyseMatInput(cv::Mat mat);
+void printCharArray(vector<uchar> mat);
+vector<uchar> returnMatDataWithVector(cv::Mat mat);

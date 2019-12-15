@@ -22,6 +22,8 @@
     <ClInclude Include="cudaTest.cuh" />
     <ClInclude Include="main.h" />
     <ClInclude Include="opencvTest.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cudaTest.cu" />
@@ -29,6 +31,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="opencvTest.cpp" />
+    <ClCompile Include="timer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="cuda.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
