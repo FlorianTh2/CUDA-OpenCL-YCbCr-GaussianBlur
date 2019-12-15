@@ -8,8 +8,13 @@
 using namespace std;
 
 __global__ void test();
+__global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* dev_dataResult);
+__global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, int dataSize);
+
+
 
 
 void doSmth();
-void convertBGRToYCBCR(unsigned char* data);
-void cudaMain(unsigned char* data);
+unsigned char* convertBGRToYCBCR(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims);
+unsigned char* applyGaussianFilter(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims);
+void cudaMain(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims);

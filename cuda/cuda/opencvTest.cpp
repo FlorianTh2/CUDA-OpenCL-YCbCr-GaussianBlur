@@ -35,6 +35,8 @@ cv::Mat convertYcbcrToBRG(cv::Mat mat)
 }
 
 
+
+
 cv::Mat changeYcbcrStyle(cv::Mat mat)
 {
 	cv::Mat yCrCbChannels[3];
@@ -81,10 +83,14 @@ vector<uchar> returnMatDataWithVector(cv::Mat mat)
 
 }
 
+
+
 uchar * returnMatDataWithCharArray(cv::Mat mat)
 {
 	return mat.data;
 }
+
+
 
 void printCharArray(vector<uchar> mat)
 {
