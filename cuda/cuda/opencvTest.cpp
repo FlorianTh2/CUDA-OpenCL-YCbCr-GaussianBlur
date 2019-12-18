@@ -20,6 +20,17 @@ void displayImage(cv::Mat mat) {
 
 }
 
+void displayImages(cv::Mat mat1, cv::Mat mat2)
+{
+	// WINDOW_NORMAL = image will resize itself according to the current window size
+	cv::namedWindow("OpenCV_Test_Window", cv::WINDOW_NORMAL);
+	// update the content of the OpenCV window with a new image
+	cv::imshow("1", mat1);
+	cv::imshow("2", mat2);
+	// window to be displayed until the user presses a key
+	cv::waitKey(0);
+}
+
 cv::Mat convertBRGToYcbcr(cv::Mat mat)
 {
 	cv::Mat matConverted;
@@ -75,6 +86,22 @@ cv::Mat applyGaussian(cv::Mat mat)
 	return resultMat;
 }
 
+cv::Mat convertMatBGRToRGB(cv::Mat mat)
+{
+	cv::Mat matConverted;
+	cv::cvtColor(mat, matConverted, cv::COLOR_BGR2RGB);
+	return matConverted;
+}
+
+cv::Mat convertMatRGB2BGR(cv::Mat mat)
+{
+	cv::Mat matConverted;
+	cv::cvtColor(mat, matConverted, cv::COLOR_RGB2BGR);
+	return matConverted;
+}
+
+
+
 vector<uchar> returnMatDataWithVector(cv::Mat mat)
 {
 	vector<uchar> returnArray;
@@ -90,7 +117,42 @@ uchar * returnMatDataWithCharArray(cv::Mat mat)
 	return mat.data;
 }
 
+cv::Mat returnMatFromCharArray(uchar* data, std::tuple<int, int> size)
+{
+	const cv::Mat img(cv::Size(get<0>(size), get<1>(size)), CV_8UC3, data);
+	bool check;
+	return img;
+}
 
+tuple<int, int> getMatSize(cv::Mat mat)
+{
+	return make_tuple(mat.size().width, mat.size().height);
+}
+
+cv::Mat convertRBG2BGR(cv::Mat mat)
+{
+	cv::Mat matConverted;
+	cv::cvtColor(mat, matConverted, cv::COLOR_RGB2BGR);
+	return matConverted;
+}
+
+cv::Mat convertYCRCB2BGR(cv::Mat mat)
+{
+	cv::Mat matConverted;
+	cv::cvtColor(mat, matConverted, cv::COLOR_YCrCb2BGR);
+	return matConverted;
+}
+
+int differenceBetweenOpenCVAndGPURendered(cv::Mat openMat, cv::Mat gpuMat)
+{
+	cv::Mat result;
+
+	auto difference = openMat - gpuMat;
+
+	cv::subtract(openMat, gpuMat, result);
+	return cv::sum(result)[0] + cv::sum(result)[1] + cv::sum(result)[2];
+
+}
 
 void printCharArray(vector<uchar> mat)
 {
