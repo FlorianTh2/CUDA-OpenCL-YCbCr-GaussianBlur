@@ -124,7 +124,7 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 }
 
 
-
+// data: BGR-Sequence of the input channels of data
 unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, dim3 gridDims, dim3 blockDims, const int channelsPara)
 {
 	cout << dataSize << endl;
@@ -137,10 +137,7 @@ unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, di
 	for (int i = 0; i < channels; i++) {
 		resultChannels1[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
 		resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims);
-
 	}
-	
-	
 	
 	cudaDeviceReset();
 

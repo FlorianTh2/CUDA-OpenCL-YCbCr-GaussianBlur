@@ -44,31 +44,33 @@ void gaussianFilter1()
 
 
 	for (int i = 0; i < channels; i++) {
-		resultChannels[i] = (unsigned char*)malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
+		resultChannels[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
 
-
+	// erstmal auskommentiert, da versucht wird, dass orig-image wieder zu mergen
 	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels);
-
-	// merge color array
-	// darstellen des Ausgangsbildes
-	// gauss
-
-
 
 
 	timer.stop();
 	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
 
 
-	cv::Mat matResultRGB = returnMatFromCharArray(resultdata, imageSize);
-	cv::Mat matBGRResult = convertMatRGB2BGR(matResultRGB);
+
+	std::vector<cv::Mat> arrayChannelMatsResult;
+	for (size_t i = 0; i < channels; i++)
+		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSize));
+	cv::Mat matBGRResult;
+	cv::merge(arrayChannelMatsResult, matBGRResult);
 	displayImage(matBGRResult);
 
 	//int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
+	free(resultChannels);
 }
 
+// merge color array
+// darstellen des Ausgangsbildes
+// gauss
 
 
 

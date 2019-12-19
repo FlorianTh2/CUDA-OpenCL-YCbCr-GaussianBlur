@@ -124,6 +124,13 @@ cv::Mat returnMatFromCharArray(uchar* data, std::tuple<int, int> size)
 	return img;
 }
 
+cv::Mat returnMatFromCharArrayOneChannel(uchar* data, std::tuple<int, int> size)
+{
+	const cv::Mat img(cv::Size(get<0>(size), get<1>(size)), CV_8UC1, data);
+	bool check;
+	return img;
+}
+
 tuple<int, int> getMatSize(cv::Mat mat)
 {
 	return make_tuple(mat.size().width, mat.size().height);

@@ -29,3 +29,4 @@ int differenceBetweenOpenCVAndGPURendered(cv::Mat openMat, cv::Mat gpuMat);
 cv::Mat convertYCRCB2BGR(cv::Mat mat);
 void displayImages(cv::Mat mat1, cv::Mat mat2);
 cv::Mat convertMatRGB2BGR(cv::Mat mat);
+cv::Mat returnMatFromCharArrayOneChannel(uchar* data, std::tuple<int, int> size);
