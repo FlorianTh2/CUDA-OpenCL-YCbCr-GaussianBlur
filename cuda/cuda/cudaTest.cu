@@ -41,34 +41,47 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 	}
 }
 
-__global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, int dataSize)
+
+//// d_paddedImage: speicherallokierung mit ->  paddedIWidth * paddedIHeight * sizeof(float)
+//const T* d_f,
+//
+//// paddedIWidth = iWidth + 2 * hFilterSize // hFilterSize = filterSize / 2 = eig radius des kernels
+//const unsigned int paddedW,
+//
+//
+//// paddedIHeight = iHeight + 2 * hFilterSize // hFilterSize = filterSize / 2 = eig radius des kernels
+//const unsigned int paddedH,
+//
+//// radius of filter, später zusammengetragen mit filterSize=(2S+1)×(2S+1)(2S+1)×(2S+1).
+//const int S,
+//
+//// d_filteringResult speicherallokierung mit // iWidth * iHeight * sizeof(float)
+//T* d_h,
+//
+//// image widthe
+//const unsigned int W,
+//
+////image height
+//const unsigned int H )
+
+
+__global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double** filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
-	int channels = 3;
-	for (size_t i = 0; i < dataSize; i++)
-	{
 
-	}
-
-	*dev_dataResult = 1;
+	int filterWidth = filterHeight;
+	int newImageHeight = imageHeight - filterHeight + 1;
+	int newImageWidth = imageWidth - filterHeight + 1;
 
 
-
-    //double stdv = 1.0;
-    //double r, s = 2.0 * stdv * stdv;  // Assigning standard deviation to 1.0
-    //double sum = 0.0;   // Initialization of sun for normalization
-    //for (int x = -2; x <= 2; x++) // Loop to generate 5x5 kernel
-    //{
-    //    for(int y = -2; y <= 2; y++)
-    //    {
-    //        r = sqrt(x*x + y*y);
-    //        gk[x + 2][y + 2] = (exp(-(r*r)/s))/(M_PI * s);
-    //        sum += gk[x + 2][y + 2];
-    //    }
-    //}
-
-    //for(int i = 0; i < 5; ++i) // Loop to normalize the kernel
-    //    for(int j = 0; j < 5; ++j)
-    //        gk[i][j] /= sum;
+		for (int i = 0; i < newImageWidth; i++) {
+			for (int j = 0; j < newImageHeight; j++) {
+				for (int h = i; h < i + filterWidth; h++) {
+					for (int w = j; w < j + filterHeight; w++) {
+						dev_dataResult[i* imageWidth + j] = dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w];
+					}
+				}
+			}
+		}
 
 }
 
@@ -79,6 +92,8 @@ void doSmth()
 	test << < 1, 1 >> > ();
 	return;
 }
+
+
 
 unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims)
 {
@@ -94,8 +109,8 @@ unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDi
 
 	dev_convertColorSpace <<< gridDims, blockDims >>> (dev_data, dev_dataResult, dataSize);
 
-	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSize, cudaMemcpyDeviceToHost);
 
+	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSize, cudaMemcpyDeviceToHost);
 
 
 	cudaFree(&dev_data);
@@ -108,24 +123,85 @@ unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDi
 
 
 
-unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridDims, dim3 blockDims)
+unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridDims, dim3 blockDims, double** filter, int imageHeight, int imageWidth, int filterHeight)
 {
-	unsigned char* dataResult = (unsigned char*)malloc(sizeof(unsigned char) * dataSize);
+	int newImageWidth = imageWidth - filterHeight + 1;
+	int newImageHeight = imageHeight - filterHeight + 1;
+	int dataSizeResultImage = newImageWidth * newImageHeight;
+	unsigned char* dataResult = (unsigned char*)malloc(sizeof(unsigned char) * dataSizeResultImage);
+
 	unsigned char* dev_data;
 	unsigned char* dev_dataResult;
-	cudaMalloc(&dev_data, sizeof(unsigned char) * dataSize);
-	cudaMalloc(&dev_dataResult, sizeof(unsigned char) * dataSize);
-	cudaMemcpy(dev_data, data, sizeof(unsigned char) * dataSize, cudaMemcpyHostToDevice);
-	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, dataSize);
-	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSize, cudaMemcpyDeviceToHost);
+
+
+	cudaMalloc(&dev_data, sizeof(unsigned char) * dataSize/3);
+	cudaMalloc(&dev_dataResult, sizeof(unsigned char) * dataSizeResultImage);
+	cudaMemcpy(dev_data, data, sizeof(unsigned char) * dataSize / 3, cudaMemcpyHostToDevice);
+	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, filter, dataSize, imageHeight, imageWidth, filterHeight);
+
+	cudaError_t error = cudaGetLastError();
+	if (error != cudaSuccess)
+	{
+		// print the CUDA error message and exit
+		printf("CUDA error: %s\n", cudaGetErrorString(error));
+		exit(-1);
+	}
+
+
+	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSizeResultImage, cudaMemcpyDeviceToHost);
 	cudaFree(&dev_data);
 	cudaFree(&dev_dataResult);
 	return dataResult;
 }
 
+double** createGaussianFilter(int width, int height, double sigma)
+{
+	double PI = 3.1415;
+
+	double** kernel = (double**) malloc(height * sizeof(double *));
+
+	for (int i = 0; i < height; i++) {
+		kernel[i] = (double*) malloc(sizeof(double) * width);
+	}
+
+
+	double sum = 0.0;
+	int a, b;
+
+	for (a = 0; a < height; a++) {
+
+		for (b = 0; b < width; b++) {
+			cout << "hier ";
+			double result = exp(-(a * a + b * b) / (2 * sigma * sigma)) / (2 * PI * sigma * sigma);
+			cout << "result: " << result << endl;
+			kernel[a][b] = result;
+			sum += kernel[a][b];
+		}
+	}
+
+	for (a = 0; a < height; a++) {
+
+		for (b = 0; b < width; b++) {
+			kernel[a][b] /= sum;
+		}
+	}
+
+	cout << "sum: " << sum << endl;
+
+	//for (a = 0; a < width; a++)
+	//{
+	//	for (b = 0; b < height; b++)
+	//	{
+	//		cout << (double) kernel[a][b] << " ";
+	//	}
+	//	cout << endl;
+	//}
+
+	return kernel;
+}
 
 // data: BGR-Sequence of the input channels of data
-unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, dim3 gridDims, dim3 blockDims, const int channelsPara)
+unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, dim3 gridDims, dim3 blockDims, const int channelsPara, int imageHeight, int imageWidth, int filterHeight, double sigma)
 {
 	cout << dataSize << endl;
 	const int channels = channelsPara;
@@ -134,14 +210,14 @@ unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, di
 
 	unsigned char** resultChannels1 = (unsigned char**)malloc(channels * sizeof(unsigned char*));
 
+	double** filter = createGaussianFilter(filterHeight, filterHeight, sigma);
+
 	for (int i = 0; i < channels; i++) {
 		resultChannels1[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
-		resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims);
+		resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
 	}
-	
+
 	cudaDeviceReset();
-
-
 
 	return resultChannels1;
 }

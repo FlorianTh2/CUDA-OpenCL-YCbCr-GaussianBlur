@@ -8,6 +8,14 @@
 
 
 
+
+// deviceQuery(): gtx 750 ti
+//Max dimension size of a thread block(x, y, z) : (1024, 1024, 64)
+//Max dimension size of a grid size(x, y, z) : (2147483647, 65535, 65535)
+//Total amount of constant memory : 65536 bytes
+//Total amount of shared memory per block : 49152 bytes
+//( 5) Multiprocessors, (128) CUDA Cores/MP:     640 CUDA Cores
+
 int main(int argc, char** argv)
 {
 	//colorConversionYCBCR();
@@ -37,6 +45,8 @@ void gaussianFilter1()
 
 	dim3 blockDims(1, 1, 1);
 	dim3 gridDims(1, 1, 1);
+	int filterHeight = 5;
+	double sigma = 10.0;
 
 	const int sizeOfOneColorChannel = dataSize / 3;
 
@@ -48,18 +58,34 @@ void gaussianFilter1()
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
 
-	// erstmal auskommentiert, da versucht wird, dass orig-image wieder zu mergen
-	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels);
+	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
 
 
 	timer.stop();
 	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
 
 
+	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
+	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
+	int dataSizeResultImage = newImageWidth * newImageHeight;
+
 
 	std::vector<cv::Mat> arrayChannelMatsResult;
 	for (size_t i = 0; i < channels; i++)
+	{
+		if (resultdata[i] == nullptr)
+		{
+			cout << "NULL-POINTER DETECTED IN RESULT-DATA" << endl;
+			exit(-1);
+		}
+		cout << "Merged channel " << i << " into vector" << endl;
+
+		for (size_t i = 0; i < dataSizeResultImage; i++)
+		{
+			cout << (int)resultdata << " ";
+		}
 		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSize));
+	}
 	cv::Mat matBGRResult;
 	cv::merge(arrayChannelMatsResult, matBGRResult);
 	displayImage(matBGRResult);
