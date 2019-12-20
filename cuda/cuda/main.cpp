@@ -73,18 +73,8 @@ void gaussianFilter1()
 	std::vector<cv::Mat> arrayChannelMatsResult;
 	for (size_t i = 0; i < channels; i++)
 	{
-		if (resultdata[i] == nullptr)
-		{
-			cout << "NULL-POINTER DETECTED IN RESULT-DATA" << endl;
-			exit(-1);
-		}
-		cout << "Merged channel " << i << " into vector" << endl;
-
-		for (size_t i = 0; i < dataSizeResultImage; i++)
-		{
-			cout << (int)resultdata << " ";
-		}
-		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSize));
+		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
+		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSizeResultImage));
 	}
 	cv::Mat matBGRResult;
 	cv::merge(arrayChannelMatsResult, matBGRResult);

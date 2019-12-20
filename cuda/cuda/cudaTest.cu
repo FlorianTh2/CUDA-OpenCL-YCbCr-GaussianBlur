@@ -68,22 +68,50 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double** filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
 
-	int filterWidth = filterHeight;
 	int newImageHeight = imageHeight - filterHeight + 1;
 	int newImageWidth = imageWidth - filterHeight + 1;
 
 
 		for (int i = 0; i < newImageWidth; i++) {
 			for (int j = 0; j < newImageHeight; j++) {
-				for (int h = i; h < i + filterWidth; h++) {
+				for (int h = i; h < i + filterHeight; h++) {
 					for (int w = j; w < j + filterHeight; w++) {
-						dev_dataResult[i* imageWidth + j] = dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w];
+		//				dev_dataResult[i* imageWidth + j] = (unsigned char) (dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w]);
+		//				dev_dataResult[0] = 1;
 					}
 				}
 			}
 		}
 
+		dev_dataResult[0] = 1;
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 void doSmth()
@@ -125,6 +153,8 @@ unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDi
 
 unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridDims, dim3 blockDims, double** filter, int imageHeight, int imageWidth, int filterHeight)
 {
+
+
 	int newImageWidth = imageWidth - filterHeight + 1;
 	int newImageHeight = imageHeight - filterHeight + 1;
 	int dataSizeResultImage = newImageWidth * newImageHeight;
@@ -133,24 +163,121 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 	unsigned char* dev_data;
 	unsigned char* dev_dataResult;
 
+	int tmp = dataSize / 3;
 
-	cudaMalloc(&dev_data, sizeof(unsigned char) * dataSize/3);
-	cudaMalloc(&dev_dataResult, sizeof(unsigned char) * dataSizeResultImage);
-	cudaMemcpy(dev_data, data, sizeof(unsigned char) * dataSize / 3, cudaMemcpyHostToDevice);
-	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, filter, dataSize, imageHeight, imageWidth, filterHeight);
 
+
+
+	cudaMalloc(&dev_data, sizeof(unsigned char) * tmp);
 	cudaError_t error = cudaGetLastError();
 	if (error != cudaSuccess)
 	{
-		// print the CUDA error message and exit
-		printf("CUDA error: %s\n", cudaGetErrorString(error));
+		printf("CUDA error0: %s\n", cudaGetErrorString(error));
+		exit(-1);
+	}
+	cudaMalloc(&dev_dataResult, sizeof(unsigned char) * dataSizeResultImage);
+
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+	{
+		printf("CUDA error1: %s\n", cudaGetErrorString(error));
+		exit(-1);
+	}
+	cudaMemcpy(dev_data, data, sizeof(unsigned char) * (dataSize / 3), cudaMemcpyHostToDevice);
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+	{
+		printf("CUDA error2: %s\n", cudaGetErrorString(error));
+		exit(-1);
+	}
+	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, filter, dataSize, imageHeight, imageWidth, filterHeight);
+
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+	{
+		printf("CUDA error3: %s\n", cudaGetErrorString(error));
 		exit(-1);
 	}
 
 
 	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSizeResultImage, cudaMemcpyDeviceToHost);
-	cudaFree(&dev_data);
-	cudaFree(&dev_dataResult);
+	//cudaFree(&dev_data);
+	//cudaFree(&dev_dataResult);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	//irgendwie wird der Datensatz nicht richtig initialisiert oder Null-pointer oder kA jedenfalls kann ich im kernel keine 1 setzen, die auf host ersichtlich wird
+	// geht doch, aber besonders bei der innersten loop kommt manchmal 1 durch, oft aber 205, das deuted meiner Meinung nach auf Speicherallokierungsproblem hin
+	// bezüglich eines Parameters von dev_applyGaussian
+
+
+	for (size_t i = 0; i < dataSizeResultImage; i++)
+	{
+		cout << (int) dataResult[i] << " ";
+	}
+
 	return dataResult;
 }
 
@@ -171,7 +298,6 @@ double** createGaussianFilter(int width, int height, double sigma)
 	for (a = 0; a < height; a++) {
 
 		for (b = 0; b < width; b++) {
-			cout << "hier ";
 			double result = exp(-(a * a + b * b) / (2 * sigma * sigma)) / (2 * PI * sigma * sigma);
 			cout << "result: " << result << endl;
 			kernel[a][b] = result;
@@ -201,8 +327,10 @@ double** createGaussianFilter(int width, int height, double sigma)
 }
 
 // data: BGR-Sequence of the input channels of data
-unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, dim3 gridDims, dim3 blockDims, const int channelsPara, int imageHeight, int imageWidth, int filterHeight, double sigma)
+unsigned char** applyGaussianFilter(unsigned char** data, int dataSize, dim3 gridDims, dim3 blockDims, const int channelsPara, int imageHeight, int imageWidth, int filterHeight, double sigma)
 {
+
+
 	cout << dataSize << endl;
 	const int channels = channelsPara;
 
@@ -212,11 +340,21 @@ unsigned char** applyGaussianFilter(unsigned char** data, const int dataSize, di
 
 	double** filter = createGaussianFilter(filterHeight, filterHeight, sigma);
 
-	for (int i = 0; i < channels; i++) {
-		resultChannels1[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
-		resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
-	}
+	int newImageWidth = imageWidth - filterHeight + 1;
+	int newImageHeight = imageHeight - filterHeight + 1;
+	int dataSizeResultImage = newImageWidth * newImageHeight;
 
+	for (int i = 0; i < channels; i++) {
+		resultChannels1[i] = (unsigned char*) malloc(sizeof(unsigned char) * dataSizeResultImage);
+		//resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
+	}
+	resultChannels1[0] = gaussianOneChannel(data[0], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
+
+
+	for (size_t i = 0; i < dataSize/3; i++)
+	{
+		//cout << (int) data[0] << " ";
+	}
 	cudaDeviceReset();
 
 	return resultChannels1;
