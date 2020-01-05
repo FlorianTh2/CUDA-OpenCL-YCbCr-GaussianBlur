@@ -42,48 +42,63 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 }
 
 
-//// d_paddedImage: speicherallokierung mit ->  paddedIWidth * paddedIHeight * sizeof(float)
-//const T* d_f,
-//
-//// paddedIWidth = iWidth + 2 * hFilterSize // hFilterSize = filterSize / 2 = eig radius des kernels
-//const unsigned int paddedW,
-//
-//
-//// paddedIHeight = iHeight + 2 * hFilterSize // hFilterSize = filterSize / 2 = eig radius des kernels
-//const unsigned int paddedH,
-//
-//// radius of filter, später zusammengetragen mit filterSize=(2S+1)×(2S+1)(2S+1)×(2S+1).
-//const int S,
-//
-//// d_filteringResult speicherallokierung mit // iWidth * iHeight * sizeof(float)
-//T* d_h,
-//
-//// image widthe
-//const unsigned int W,
-//
-////image height
-//const unsigned int H )
-
-
-__global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double** filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
+__global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double* filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
 
 	int newImageHeight = imageHeight - filterHeight + 1;
 	int newImageWidth = imageWidth - filterHeight + 1;
 
+	int blockidx1 = blockIdx.x;
 
-		for (int i = 0; i < newImageWidth; i++) {
-			for (int j = 0; j < newImageHeight; j++) {
-				for (int h = i; h < i + filterHeight; h++) {
-					for (int w = j; w < j + filterHeight; w++) {
-		//				dev_dataResult[i* imageWidth + j] = (unsigned char) (dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w]);
-		//				dev_dataResult[0] = 1;
-					}
-				}
+	int imageYSource = blockidx1 / imageWidth;
+	int imageXSource = blockidx1 % imageWidth;
+
+	if (imageYSource < (filterHeight/2) && imageYSource > (imageHeight - 2 * filterHeight/2) && imageXSource < (filterHeight / 2) && imageXSource >(imageHeight - 2 * filterHeight / 2))
+		return;
+
+	int imageYResult = blockidx1 / newImageWidth;
+	int imageXResult = blockidx1 % newImageWidth;
+
+		//width
+		//for (int i = 0; i < newImageWidth; i++) {
+		//	//height
+		//	for (int j = 0; j < newImageHeight; j++) {
+		//		//filterWidth
+		//		//used "filterHeight" for height and width because its assumed that filter is symmetric
+		//		for (int h = i; h < (i + filterHeight); h++) {
+		//			//filterHeight
+		//			for (int w = j; w < (j + filterHeight); w++) {
+		//				//dev_dataResult[i* imageWidth + j] = (unsigned char) (dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w]);
+		//				//dev_dataResult[0] = 1;
+		//			}
+		//		}
+		//	}
+		//}
+
+
+		for (int h = 0; h < filterHeight; h++)
+		{
+			for (int w = 0; w < filterHeight; w++)
+			{
+				double tmp = filter[h * filterHeight + w] * dev_data[(imageYResult + h - filterHeight/2) * newImageWidth + (imageXResult + w - filterHeight / 2)];
+
+				dev_dataResult[imageYResult * newImageWidth + imageXResult] = (unsigned char) filter[4 * filterHeight + 4] * 100000 ;// (dev_dataResult[imageYResult * newImageWidth + imageXResult] + tmp * 1000000);
 			}
 		}
+		dev_dataResult[0] =  100 * filter[0];
+		dev_dataResult[1] =  dev_data[17051];
+		dev_dataResult[2] = filter[4 * filterHeight + 4] * 100000;
+		dev_dataResult[blockidx1] = blockIdx.x;
+		//dev_dataResult[7] = imageYResult * newImageWidth + imageXResult;
 
-		dev_dataResult[0] = 1;
+
+		
+
+	//// max = 7000000 with block- and grid-dim = 1
+	//for (int i = 0; i < 1; i++) {
+	//	dev_dataResult[0] = 1;
+	//}
+
 
 }
 
@@ -151,7 +166,7 @@ unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDi
 
 
 
-unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridDims, dim3 blockDims, double** filter, int imageHeight, int imageWidth, int filterHeight)
+unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridDims, dim3 blockDims, double* filter, int imageHeight, int imageWidth, int filterHeight)
 {
 
 
@@ -162,9 +177,13 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 
 	unsigned char* dev_data;
 	unsigned char* dev_dataResult;
+	double* dev_filter;
 
 	int tmp = dataSize / 3;
 
+
+	cudaMalloc(&dev_filter, sizeof(double) * filterHeight * filterHeight);
+	cudaMemcpy(dev_filter, filter, sizeof(double) * filterHeight * filterHeight, cudaMemcpyHostToDevice);
 
 
 
@@ -190,7 +209,7 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 		printf("CUDA error2: %s\n", cudaGetErrorString(error));
 		exit(-1);
 	}
-	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, filter, dataSize, imageHeight, imageWidth, filterHeight);
+	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, dev_filter, dataSize, imageHeight, imageWidth, filterHeight);
 
 	error = cudaGetLastError();
 	if (error != cudaSuccess)
@@ -206,82 +225,19 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	//irgendwie wird der Datensatz nicht richtig initialisiert oder Null-pointer oder kA jedenfalls kann ich im kernel keine 1 setzen, die auf host ersichtlich wird
-	// geht doch, aber besonders bei der innersten loop kommt manchmal 1 durch, oft aber 205, das deuted meiner Meinung nach auf Speicherallokierungsproblem hin
-	// bezüglich eines Parameters von dev_applyGaussian
-
-
 	for (size_t i = 0; i < dataSizeResultImage; i++)
 	{
 		cout << (int) dataResult[i] << " ";
+		//if (data[i] != 0 && data[i] != 255) {
+		//	cout << "This index of element not equals 0 and not 255: " << i << endl;
+		//}
+		//cout << (int) data[i] << " ";
 	}
 
 	return dataResult;
 }
 
-double** createGaussianFilter(int width, int height, double sigma)
+double* createGaussianFilter(int width, int height, double sigma)
 {
 	double PI = 3.1415;
 
@@ -305,6 +261,10 @@ double** createGaussianFilter(int width, int height, double sigma)
 		}
 	}
 
+
+
+
+
 	for (a = 0; a < height; a++) {
 
 		for (b = 0; b < width; b++) {
@@ -313,6 +273,18 @@ double** createGaussianFilter(int width, int height, double sigma)
 	}
 
 	cout << "sum: " << sum << endl;
+
+
+	double* kernelFlat = (double*)malloc(height * height * sizeof(double));
+
+	for (int h = 0; h < height; h++)
+	{
+		for (int w = 0; w < height; w++)
+		{
+			// y*width+width_pos
+			kernelFlat[h * height + w] = kernel[h][w];
+		}
+	}
 
 	//for (a = 0; a < width; a++)
 	//{
@@ -323,7 +295,7 @@ double** createGaussianFilter(int width, int height, double sigma)
 	//	cout << endl;
 	//}
 
-	return kernel;
+	return kernelFlat;
 }
 
 // data: BGR-Sequence of the input channels of data
@@ -338,7 +310,7 @@ unsigned char** applyGaussianFilter(unsigned char** data, int dataSize, dim3 gri
 
 	unsigned char** resultChannels1 = (unsigned char**)malloc(channels * sizeof(unsigned char*));
 
-	double** filter = createGaussianFilter(filterHeight, filterHeight, sigma);
+	double* filter = createGaussianFilter(filterHeight, filterHeight, sigma);
 
 	int newImageWidth = imageWidth - filterHeight + 1;
 	int newImageHeight = imageHeight - filterHeight + 1;

@@ -42,13 +42,19 @@ void gaussianFilter1()
 	tuple<int, int> imageSize = getMatSize(matBGR);
 	// so it DOES includes the channels
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
-
-	dim3 blockDims(1, 1, 1);
-	dim3 gridDims(1, 1, 1);
+	const int sizeOfOneColorChannel = dataSize / 3;
+	// its full height, not from mid or somehing like that
 	int filterHeight = 5;
 	double sigma = 10.0;
+	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
+	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
+	int dataSizeResultImage = newImageWidth * newImageHeight;
 
-	const int sizeOfOneColorChannel = dataSize / 3;
+
+	dim3 blockDims = 1; //(1, 0, 0);
+	dim3 gridDims = (dataSizeResultImage, 1, 1);
+
+
 
 	unsigned char** resultChannels = (unsigned char**)malloc(channels * sizeof(unsigned char*));
 
@@ -58,24 +64,38 @@ void gaussianFilter1()
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
 
+
+
 	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
+
+
+
 
 
 	timer.stop();
 	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
 
 
-	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
-	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
-	int dataSizeResultImage = newImageWidth * newImageHeight;
+
 
 
 	std::vector<cv::Mat> arrayChannelMatsResult;
+
+
+	//// testing to merge spliced channels (which are not processed)
+	//for (size_t i = 0; i < channels; i++)
+	//{
+	//	tuple<int, int> imageSizeResultImage = imageSize;
+	//	arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultChannels[i], imageSizeResultImage));
+	//}
+
+	// merges processed channels
 	for (size_t i = 0; i < channels; i++)
 	{
 		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
 		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSizeResultImage));
 	}
+
 	cv::Mat matBGRResult;
 	cv::merge(arrayChannelMatsResult, matBGRResult);
 	displayImage(matBGRResult);
@@ -84,9 +104,16 @@ void gaussianFilter1()
 	free(resultChannels);
 }
 
-// merge color array
-// darstellen des Ausgangsbildes
-// gauss
+
+
+
+
+
+
+
+
+
+
 
 
 
