@@ -48,10 +48,12 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 	int imageYSource = blockIdx.x / imageWidth;
 	int imageXSource = blockIdx.x % imageWidth;
 
-	int cuttedAway = (filterHeight/2)
+	int cuttedAway = (filterHeight / 2);
 
-	if (imageYSource <  cuttedAway && imageYSource > (imageHeight - cuttedAway -1) && imageXSource <  cuttedAway && imageXSource > (imageWidth - cuttedAway -1))
+		if (imageYSource <  cuttedAway && imageYSource >(imageHeight - cuttedAway - 1) && imageXSource <  cuttedAway && imageXSource >(imageWidth - cuttedAway - 1))
+		{
 		return;
+		}
 
 
 	int newImageHeight = imageHeight - filterHeight + 1;
@@ -80,7 +82,7 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 			{
 				double tmp = filter[h * filterHeight + w] * dev_data[(imageYSource + h) * imageWidth + (imageXSource + w)];
 
-				dev_dataResult[(imageYSource-cuttedAway) * newImageWidth + (imageXSource- cuttedAway)] += tmp * 100;
+				dev_dataResult[(imageYSource-cuttedAway) * newImageWidth + (imageXSource- cuttedAway)] += tmp;
 			}
 		}
 
@@ -237,10 +239,10 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 		//cout << (int) data[i] << " ";
 	}
 
-	cudaFree(&dev_data);
-	cudaFree(&dev_dataResult);
-	cudaFree(&dev_filter);
-	cudaDeviceReset();
+	//cudaFree(&dev_data);
+	//cudaFree(&dev_dataResult);
+	//cudaFree(&dev_filter);
+	//cudaDeviceReset();
 
 	return dataResult;
 }
@@ -265,7 +267,7 @@ double* createGaussianFilter(int width, int height, double sigma)
 for (int x = -height/2; x <= height/2; x++) { 
         for (int y = -height/2; y <= height/2; y++) { 
             r = sqrt(x * x + y * y); 
-            GKernel[x + height/2][y + height/2] = (exp(-(r * r) / s)) / (M_PI * s); 
+            GKernel[x + height/2][y + height/2] = (exp(-(r * r) / s)) / (PI * s);
             sum += GKernel[x + height/2][y + height/2]; 
         } 
     } 

@@ -44,7 +44,7 @@ void gaussianFilter1()
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
 	const int sizeOfOneColorChannel = dataSize / 3;
 	// its full height, not from mid or somehing like that
-	int filterHeight = 3;
+	int filterHeight = 7;
 	double sigma = 10.0;
 	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
@@ -58,7 +58,6 @@ void gaussianFilter1()
 
 
 	for (int i = 0; i < channels; i++) {
-		//resultChannels[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);------------------------------------------------------
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
 
