@@ -1,0 +1,7 @@
+richtige result-image größe finden
+von only grid.x zu blockdim
+variable channels
+weg von single calles for each channel to all data at ones (and when mod or something like that)
+
+
+//algorithmus eventuell berichtigen
