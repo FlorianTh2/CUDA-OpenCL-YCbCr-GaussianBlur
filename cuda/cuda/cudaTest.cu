@@ -53,8 +53,8 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 	int imageYSource = blockidx1 / imageWidth;
 	int imageXSource = blockidx1 % imageWidth;
 
-	if (imageYSource < (filterHeight/2) && imageYSource > (imageHeight - 2 * filterHeight/2) && imageXSource < (filterHeight / 2) && imageXSource >(imageHeight - 2 * filterHeight / 2))
-		return;
+	//if (imageYSource < (filterHeight/2) && imageYSource > (imageHeight - 1 * filterHeight/2) && imageXSource < (filterHeight / 2) && imageXSource >(imageHeight - 1 * filterHeight / 2))
+	//	return;
 
 	int imageYResult = blockidx1 / newImageWidth;
 	int imageXResult = blockidx1 % newImageWidth;
@@ -82,14 +82,12 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 			{
 				double tmp = filter[h * filterHeight + w] * dev_data[(imageYResult + h - filterHeight/2) * newImageWidth + (imageXResult + w - filterHeight / 2)];
 
-				dev_dataResult[imageYResult * newImageWidth + imageXResult] = (unsigned char) filter[4 * filterHeight + 4] * 100000 ;// (dev_dataResult[imageYResult * newImageWidth + imageXResult] + tmp * 1000000);
+				dev_dataResult[imageYResult * newImageWidth + imageXResult] += filter[4 * filterHeight + 4] * tmp* 100; // (dev_dataResult[imageYResult * newImageWidth + imageXResult] + tmp * 1000000);
 			}
 		}
 		dev_dataResult[0] =  100 * filter[0];
 		dev_dataResult[1] =  dev_data[17051];
 		dev_dataResult[2] = filter[4 * filterHeight + 4] * 100000;
-		dev_dataResult[blockidx1] = blockIdx.x;
-		//dev_dataResult[7] = imageYResult * newImageWidth + imageXResult;
 
 
 		
@@ -150,6 +148,8 @@ unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDi
 
 	cudaMemcpy(dev_data, data, sizeof(unsigned char) * dataSize, cudaMemcpyHostToDevice);
 
+
+
 	dev_convertColorSpace <<< gridDims, blockDims >>> (dev_data, dev_dataResult, dataSize);
 
 
@@ -209,6 +209,7 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 		printf("CUDA error2: %s\n", cudaGetErrorString(error));
 		exit(-1);
 	}
+
 	dev_applyGaussian << < gridDims, blockDims >> > (dev_data, dev_dataResult, dev_filter, dataSize, imageHeight, imageWidth, filterHeight);
 
 	error = cudaGetLastError();
@@ -220,19 +221,26 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 
 
 	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSizeResultImage, cudaMemcpyDeviceToHost);
-	//cudaFree(&dev_data);
-	//cudaFree(&dev_dataResult);
+
 
 
 
 	for (size_t i = 0; i < dataSizeResultImage; i++)
 	{
-		cout << (int) dataResult[i] << " ";
+		//cout << (int) dataResult[i] << " ";
+
+
+
 		//if (data[i] != 0 && data[i] != 255) {
 		//	cout << "This index of element not equals 0 and not 255: " << i << endl;
 		//}
 		//cout << (int) data[i] << " ";
 	}
+
+	cudaFree(&dev_data);
+	cudaFree(&dev_dataResult);
+	cudaFree(&dev_filter);
+	cudaDeviceReset();
 
 	return dataResult;
 }
@@ -318,9 +326,9 @@ unsigned char** applyGaussianFilter(unsigned char** data, int dataSize, dim3 gri
 
 	for (int i = 0; i < channels; i++) {
 		resultChannels1[i] = (unsigned char*) malloc(sizeof(unsigned char) * dataSizeResultImage);
-		//resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
+		resultChannels1[i] = gaussianOneChannel(data[i], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
 	}
-	resultChannels1[0] = gaussianOneChannel(data[0], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
+	//resultChannels1[0] = gaussianOneChannel(data[0], dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
 
 
 	for (size_t i = 0; i < dataSize/3; i++)

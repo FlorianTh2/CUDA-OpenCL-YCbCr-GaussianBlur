@@ -50,10 +50,8 @@ void gaussianFilter1()
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
 	int dataSizeResultImage = newImageWidth * newImageHeight;
 
-
-	dim3 blockDims = 1; //(1, 0, 0);
-	dim3 gridDims = (dataSizeResultImage, 1, 1);
-
+	dim3 blockDims = dim3(1,1,1); //(1, 0, 0);
+	dim3 gridDims = dim3(dataSizeResultImage,1,1);
 
 
 	unsigned char** resultChannels = (unsigned char**)malloc(channels * sizeof(unsigned char*));
@@ -63,7 +61,6 @@ void gaussianFilter1()
 		resultChannels[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
-
 
 
 	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
@@ -92,7 +89,7 @@ void gaussianFilter1()
 	// merges processed channels
 	for (size_t i = 0; i < channels; i++)
 	{
-		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
+		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth+3, newImageHeight);
 		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSizeResultImage));
 	}
 
@@ -102,6 +99,7 @@ void gaussianFilter1()
 
 	//int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
 	free(resultChannels);
+	free(resultdata);
 }
 
 
