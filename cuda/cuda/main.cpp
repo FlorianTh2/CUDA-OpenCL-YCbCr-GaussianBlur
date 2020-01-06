@@ -4,7 +4,7 @@
 
 // unsigned char array to mat
 // mat displayen
-// adjustierte mat displayen (damit man vergleichen kann mit opencv-veränderte matrix)
+// adjustierte mat displayen (damit man vergleichen kann mit opencv-verï¿½nderte matrix)
 
 
 
@@ -44,7 +44,7 @@ void gaussianFilter1()
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
 	const int sizeOfOneColorChannel = dataSize / 3;
 	// its full height, not from mid or somehing like that
-	int filterHeight = 5;
+	int filterHeight = 3;
 	double sigma = 10.0;
 	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
@@ -58,7 +58,7 @@ void gaussianFilter1()
 
 
 	for (int i = 0; i < channels; i++) {
-		resultChannels[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);
+		//resultChannels[i] = (unsigned char*) malloc(sizeof(unsigned char) * sizeOfOneColorChannel);------------------------------------------------------
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
 
@@ -89,7 +89,7 @@ void gaussianFilter1()
 	// merges processed channels
 	for (size_t i = 0; i < channels; i++)
 	{
-		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth+3, newImageHeight);
+		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
 		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSizeResultImage));
 	}
 

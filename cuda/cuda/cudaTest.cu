@@ -19,7 +19,7 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 {
 	int channels = 3;
 	//dataSize /= 3;
-	// blockid * wieVieleBlöckeGesamt + (threadID*channels)
+	// blockid * wieVieleBlï¿½ckeGesamt + (threadID*channels)
 	int globalThreadId = (blockIdx.x * channels) * blockDim.x + (threadIdx.x*channels);
 
 	// grid-stride loop
@@ -45,49 +45,49 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double* filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
 
+	int imageYSource = blockIdx.x / imageWidth;
+	int imageXSource = blockIdx.x % imageWidth;
+
+	int cuttedAway = (filterHeight/2)
+
+	if (imageYSource <  cuttedAway && imageYSource > (imageHeight - cuttedAway -1) && imageXSource <  cuttedAway && imageXSource > (imageWidth - cuttedAway -1))
+		return;
+
+
 	int newImageHeight = imageHeight - filterHeight + 1;
 	int newImageWidth = imageWidth - filterHeight + 1;
 
-	int blockidx1 = blockIdx.x;
+	int imageYResult = newImageWidth / newImageWidth;
+	int imageXResult = newImageWidth % newImageWidth;
 
-	int imageYSource = blockidx1 / imageWidth;
-	int imageXSource = blockidx1 % imageWidth;
 
-	//if (imageYSource < (filterHeight/2) && imageYSource > (imageHeight - 1 * filterHeight/2) && imageXSource < (filterHeight / 2) && imageXSource >(imageHeight - 1 * filterHeight / 2))
-	//	return;
 
-	int imageYResult = blockidx1 / newImageWidth;
-	int imageXResult = blockidx1 % newImageWidth;
 
-		//width
-		//for (int i = 0; i < newImageWidth; i++) {
-		//	//height
-		//	for (int j = 0; j < newImageHeight; j++) {
-		//		//filterWidth
-		//		//used "filterHeight" for height and width because its assumed that filter is symmetric
-		//		for (int h = i; h < (i + filterHeight); h++) {
-		//			//filterHeight
-		//			for (int w = j; w < (j + filterHeight); w++) {
-		//				//dev_dataResult[i* imageWidth + j] = (unsigned char) (dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w]);
-		//				//dev_dataResult[0] = 1;
-		//			}
-		//		}
+
+		//for (int h = 0; h < filterHeight; h++)
+		//{
+		//	for (int w = 0; w < filterHeight; w++)
+		//	{
+		//		double tmp = filter[h * filterHeight + w] * dev_data[(imageYResult + h - filterHeight/2) * newImageWidth + (imageXResult + w - filterHeight / 2)];
+		//
+		//		dev_dataResult[imageYResult * newImageWidth + imageXResult] += filter[4 * filterHeight + 4] * tmp* 100; // (dev_dataResult[imageYResult * newImageWidth + imageXResult] + tmp * 1000000);
 		//	}
 		//}
-
 
 		for (int h = 0; h < filterHeight; h++)
 		{
 			for (int w = 0; w < filterHeight; w++)
 			{
-				double tmp = filter[h * filterHeight + w] * dev_data[(imageYResult + h - filterHeight/2) * newImageWidth + (imageXResult + w - filterHeight / 2)];
+				double tmp = filter[h * filterHeight + w] * dev_data[(imageYSource + h) * imageWidth + (imageXSource + w)];
 
-				dev_dataResult[imageYResult * newImageWidth + imageXResult] += filter[4 * filterHeight + 4] * tmp* 100; // (dev_dataResult[imageYResult * newImageWidth + imageXResult] + tmp * 1000000);
+				dev_dataResult[(imageYSource-cuttedAway) * newImageWidth + (imageXSource- cuttedAway)] += tmp * 100;
 			}
 		}
-		dev_dataResult[0] =  100 * filter[0];
-		dev_dataResult[1] =  dev_data[17051];
-		dev_dataResult[2] = filter[4 * filterHeight + 4] * 100000;
+
+
+		//dev_dataResult[0] =  100 * filter[0];
+		//dev_dataResult[1] =  dev_data[17051];
+		//dev_dataResult[2] = filter[4 * filterHeight + 4] * 100000;
 
 
 		
@@ -247,38 +247,52 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 
 double* createGaussianFilter(int width, int height, double sigma)
 {
+        double r, s = 2.0 * sigma * sigma; 
+
+    
+
 	double PI = 3.1415;
 
-	double** kernel = (double**) malloc(height * sizeof(double *));
+	double** GKernel = (double**) malloc(height * sizeof(double *));
 
 	for (int i = 0; i < height; i++) {
-		kernel[i] = (double*) malloc(sizeof(double) * width);
+		GKernel[i] = (double*) malloc(sizeof(double) * width);
 	}
-
 
 	double sum = 0.0;
-	int a, b;
-
-	for (a = 0; a < height; a++) {
-
-		for (b = 0; b < width; b++) {
-			double result = exp(-(a * a + b * b) / (2 * sigma * sigma)) / (2 * PI * sigma * sigma);
-			cout << "result: " << result << endl;
-			kernel[a][b] = result;
-			sum += kernel[a][b];
-		}
-	}
 
 
+for (int x = -height/2; x <= height/2; x++) { 
+        for (int y = -height/2; y <= height/2; y++) { 
+            r = sqrt(x * x + y * y); 
+            GKernel[x + height/2][y + height/2] = (exp(-(r * r) / s)) / (M_PI * s); 
+            sum += GKernel[x + height/2][y + height/2]; 
+        } 
+    } 
+  
+    // normalising the Kernel 
+    for (int i = 0; i < height; ++i) 
+    {
+        for (int j = 0; j < height; ++j)
+        {
+            GKernel[i][j] /= sum; 
+        }
+	} 
+
+
+    for (int i = 0; i < height; ++i) 
+    {
+        for (int j = 0; j < height; ++j)
+        {
+            cout << GKernel[i][j] << " ";
+        }
+        cout << endl;
+	} 
 
 
 
-	for (a = 0; a < height; a++) {
 
-		for (b = 0; b < width; b++) {
-			kernel[a][b] /= sum;
-		}
-	}
+
 
 	cout << "sum: " << sum << endl;
 
@@ -290,18 +304,10 @@ double* createGaussianFilter(int width, int height, double sigma)
 		for (int w = 0; w < height; w++)
 		{
 			// y*width+width_pos
-			kernelFlat[h * height + w] = kernel[h][w];
+			kernelFlat[h * height + w] = GKernel[h][w];
 		}
 	}
 
-	//for (a = 0; a < width; a++)
-	//{
-	//	for (b = 0; b < height; b++)
-	//	{
-	//		cout << (double) kernel[a][b] << " ";
-	//	}
-	//	cout << endl;
-	//}
 
 	return kernelFlat;
 }
@@ -349,4 +355,23 @@ void cudaMain(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims)
 	convertRGBToYCBCR(data, dataSize, gridDims, blockDims);
 	//applyGaussianFilter(data, dataSize, gridDims, blockDims);
 }
+
+
+
+
+	//width
+	//for (int i = 0; i < newImageWidth; i++) {
+	//	//height
+	//	for (int j = 0; j < newImageHeight; j++) {
+	//		//filterWidth
+	//		//used "filterHeight" for height and width because its assumed that filter is symmetric
+	//		for (int h = i; h < (i + filterHeight); h++) {
+	//			//filterHeight
+	//			for (int w = j; w < (j + filterHeight); w++) {
+	//				//dev_dataResult[i* imageWidth + j] = (unsigned char) (dev_dataResult[i * imageWidth + j] + filter[h - i][w - j] * dev_data[h * imageWidth + w]);
+	//				//dev_dataResult[0] = 1;
+	//			}
+	//		}
+	//	}
+	//}
 
