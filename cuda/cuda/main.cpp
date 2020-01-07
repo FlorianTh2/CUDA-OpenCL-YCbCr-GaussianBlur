@@ -18,12 +18,72 @@
 
 int main(int argc, char** argv)
 {
+
+
+
 	//colorConversionYCBCR();
 	gaussianFilter1();
 	return 0;
 }
 
+void programStartArgumentHandling()
+{
+	// name of programm; hier ./main
+	// not used anymore at the moment
+	string programName= argv[0];
 
+	// parameter to determine if user wants to get colorConversion-functionality or gaussian-blur
+	// colorConversion=0 -> user wants colorConversion; colorConversion=1 -> user wants gaussian-blur (and not colorConversion)
+	int colorConversion = argv[1]==vorhanden ? argv[1] : -1; --------------------------------------------------------------------- //.toInteger // get von *char einfach so zu string?
+
+
+	// name of image
+	string imageName = argv[2]==vorhanden ? argv[2] : "error";
+
+	// value of sigma for 
+	double sigma = argv[3]==vorhanden ? argv[1] : -1.0;--------------------------------------------------------------------- //.toInteger 
+
+	// since filter is assumed to be symmetric only height (or width) is required
+	// has to be odd, e.g. 3,5,7,9,11,...
+	int filterHeight = argv[4]==vorhanden ? argv[1] : -1; --------------------------------------------------------------------- //.toInteger 
+
+	bool imageExistence = (imageName != "error" && opencv.doesExist) ? true : false;
+
+	if(colorConversion != 0 && colorConversion != 1 && imageName != "error")
+	{
+		if(imageExistence)
+		{
+		if(colorConversion == 0)
+		{
+			colorConversionYCBCR();
+		}
+		else
+		{
+			if(filterHeight != -1 && sigma != -1.0 && filterHeight > 1 && filterHeight%2!=0 && sigma > 0)
+			{
+				gaussianFilter1();
+			}
+			else
+			{
+				cout << "The arguments filterHeight and/or filterHeight are not correct or missng. Checked by condition: if(filterHeight != -1 && sigma != -1.0 && filterHeight > 1 && filterHeight%2!=0 && sigma > 0)" << endl;
+				return;
+			}
+		}
+		}
+		else
+		{
+			cout << "Imagename does not exist" << endl;
+			return
+		}
+	}
+	else
+	{
+		cout << "The arguments colorConversion (1) and/or imageName (2) [at least] are incorrect or missing. Please enter correct arguments" << endl;
+		return;
+	}
+	
+
+}
 
 void gaussianFilter1()
 {
