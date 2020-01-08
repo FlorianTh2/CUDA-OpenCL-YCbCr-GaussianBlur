@@ -44,9 +44,16 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 
 __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double* filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
+	//dim3 blockDims = dim3(maxThreadsInBlockX, maxThreadsInBlockY, 1);
+	//dim3 gridDims = dim3(newImageHeight / (float)maxThreadsInBlockY, newImageWidth / (float)maxThreadsInBlockX, 1);
 
-	int imageYSource = blockIdx.x / imageWidth;
-	int imageXSource = blockIdx.x % imageWidth;
+
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	int threadId = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
+	int currentIndex = threadId;
+
+	int imageYSource = currentIndex / imageWidth;
+	int imageXSource = currentIndex % imageWidth;
 
 	int cuttedAway = (filterHeight / 2);
 
@@ -58,6 +65,12 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 
 	int newImageHeight = imageHeight - filterHeight + 1;
 	int newImageWidth = imageWidth - filterHeight + 1;
+
+	// check if index out of bounds (since more threads then pixels)
+	if (currentIndex > (newImageHeight * newImageWidth - 1))
+	{
+		return;
+	}
 
 	int imageYResult = newImageWidth / newImageWidth;
 	int imageXResult = newImageWidth % newImageWidth;

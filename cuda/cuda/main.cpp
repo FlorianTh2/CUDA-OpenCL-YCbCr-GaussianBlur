@@ -4,6 +4,8 @@
 #include <iostream>
 #include <iterator>
 #include <algorithm>
+#include <math.h>
+
 
 
 // unsigned char array to mat
@@ -15,7 +17,7 @@ namespace po = boost::program_options;
 
 
 // deviceQuery(): gtx 750 ti
-//Max dimension size of a thread block(x, y, z) : (1024, 1024, 64)
+//Max dimension size of a thread block(x, y, z) : (1024, 1024, 64) -> (1024,1024,61) means that max threads are 1024 and not 1024*1024*64, that are max dimension limits i guess
 //Max dimension size of a grid size(x, y, z) : (2147483647, 65535, 65535)
 //Total amount of constant memory : 65536 bytes
 //Total amount of shared memory per block : 49152 bytes
@@ -34,10 +36,8 @@ int main(int argc, char** argv)
 
 void programStartArgumentHandling(int argc, char** argv)
 {
-
 	po::options_description desc("Allowed options");
 	desc.add_options()
-
 		// required
 		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur")
 		("image_name", po::value<string>(), "set name / path of image to read")
@@ -49,13 +49,9 @@ void programStartArgumentHandling(int argc, char** argv)
 		//help
 		("help", "produce help message");
 
-
-
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
 	po::notify(vm);
-
-
 
 	if (vm.count("task") && vm.count("image_name")) {
 		//cout << "Compression level was set to " << vm["compression"].as<int>() << ".\n";
@@ -124,8 +120,22 @@ void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
 	int dataSizeResultImage = newImageWidth * newImageHeight;
 
-	dim3 blockDims = dim3(1,1,1); //(1, 0, 0);
-	dim3 gridDims = dim3(dataSizeResultImage,1,1);
+
+
+	int maxThreadsInBlockX = sqrt(1024);
+	int maxThreadsInBlockY = sqrt(1024);
+	int maxThreadsInOneGrid = maxThreadsInBlockX * maxThreadsInBlockY; // around 1mio
+
+	// actually we have to include channels -> newImageHeight and Width * 3
+
+	// example: 1800x1600
+	// blockDims = (1024,1024,1)
+	// gridDims = (~1700/1024, ~1500/1024,1) = (2,2,1)
+	// all together:
+	// we need: 1800x1600
+	// we have indexes: 1024*1024*2*2
+	dim3 blockDims = dim3(maxThreadsInBlockX, maxThreadsInBlockY,1);
+	dim3 gridDims = dim3(ceil(newImageHeight / (float) maxThreadsInBlockY), ceil(newImageWidth / (float) maxThreadsInBlockX),1);
 
 
 	unsigned char** resultChannels = (unsigned char**)malloc(channels * sizeof(unsigned char*));
