@@ -26,11 +26,10 @@ namespace po = boost::program_options;
 int main(int argc, char** argv)
 {
 	//programStartArgumentHandling(argc, argv);
-	//colorConversionYCBCR();
-	gaussianFilter1("dice.png", 10.0, 7);
+	//colorConversionYCBCR("dice_large.png");
+	gaussianFilter1("dice_large.png", 10.0, 9); // Periodic_table_large
 	return 0;
 }
-
 
 
 
@@ -92,21 +91,24 @@ void programStartArgumentHandling(int argc, char** argv)
 }
 
 
-
-
-
 void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 {
 	Timer timer;
 	timer.start();
+	// alpha channel will be ignored in this project since it is about gpu-computing
 	const int channels = 3;
-	cv::Mat matBGR = readImage();
+	cv::Mat matBGR;
+	if (readImageWithName(image_name).channels() == 4)
+	{
+		matBGR = bgra2bgr(readImageWithName(image_name));
+	}
+	else
+	{
+		matBGR = readImageWithName(image_name);
+	}
+
 	cv::Mat matBGRSplitted[channels];
 	cv::split(matBGR, matBGRSplitted);
-
-
-
-
 
 	analyseMatInput(matBGR);
 	tuple<int, int> imageSize = getMatSize(matBGR);
@@ -120,18 +122,12 @@ void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
 	int dataSizeResultImage = newImageWidth * newImageHeight;
 
-
-
 	int maxThreadsInBlockX = sqrt(1024);
 	int maxThreadsInBlockY = sqrt(1024);
-	int maxThreadsInOneGrid = maxThreadsInBlockX * maxThreadsInBlockY; // around 1mio
-
-	// actually we have to include channels -> newImageHeight and Width * 3
-
 	// example: 1800x1600
 	// blockDims = (1024,1024,1)
 	// gridDims = (~1700/1024, ~1500/1024,1) = (2,2,1)
-	// all together:
+	// all together (remember we are processing each channel with new kernel call -> so not * 3 (3 == channels)):
 	// we need: 1800x1600
 	// we have indexes: 1024*1024*2*2
 	dim3 blockDims = dim3(maxThreadsInBlockX, maxThreadsInBlockY,1);
@@ -145,29 +141,12 @@ void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
 	}
 
-
 	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
-
-
-
-
 
 	timer.stop();
 	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
 
-
-
-
-
 	std::vector<cv::Mat> arrayChannelMatsResult;
-
-
-	//// testing to merge spliced channels (which are not processed)
-	//for (size_t i = 0; i < channels; i++)
-	//{
-	//	tuple<int, int> imageSizeResultImage = imageSize;
-	//	arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultChannels[i], imageSizeResultImage));
-	//}
 
 	// merges processed channels
 	for (size_t i = 0; i < channels; i++)
@@ -186,24 +165,16 @@ void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 void colorConversionYCBCR(string image_name)
 {
 	Timer timer;
 	timer.start();
 	int channels = 3;
-	cv::Mat matBGR = readImage();
+	cv::Mat matBGR = readImageWithName(image_name);
+	if (matBGR.channels() == 4)
+	{
+		matBGR = bgra2bgr(matBGR);
+	}
 	cv::Mat mat = convertMatBGRToRGB(matBGR);
 	analyseMatInput(mat);
 	tuple<int, int> imageSize = getMatSize(mat);
@@ -231,12 +202,8 @@ void colorConversionYCBCR(string image_name)
 	int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
 	cout << "differenceColorConversion: " << differenceColorConversion << endl;
 
-
-
 	cv::Mat toDisplay1 = convertYcbcrToBRG(matResultYCRCB);
 	cv::Mat toDisplay2 = convertYcbcrToBRG(opencvYCBCR);
-
-
 
 	displayImages(toDisplay1, toDisplay2);
 

@@ -7,6 +7,9 @@ cv::Mat readImage()
 {
 	// CV_LOAD_IMAGE_COLOR = loads the image in the BGR format
 	cv::Mat img = imread("dice.png",cv::IMREAD_COLOR);
+	//cv::Mat img = imread("pnglogo- blk.png", cv::IMREAD_COLOR);
+
+
 	return img;
 }
 
@@ -15,6 +18,14 @@ cv::Mat readImageWithName(string im_name)
 	// CV_LOAD_IMAGE_COLOR = loads the image in the BGR format
 	cv::Mat img = imread(im_name, cv::IMREAD_COLOR);
 	return img;
+}
+
+cv::Mat bgra2bgr(cv::Mat image)
+{
+	cv::Mat matConverted;
+	cv::cvtColor(image, matConverted, cv::COLOR_BGRA2BGR);
+	return matConverted;
+
 }
 
 void displayImage(cv::Mat mat) {
@@ -57,7 +68,8 @@ cv::Mat convertYcbcrToBRG(cv::Mat mat)
 
 cv::Mat changeYcbcrStyle(cv::Mat mat)
 {
-	cv::Mat yCrCbChannels[3];
+	const int channels = 3;
+	cv::Mat yCrCbChannels[channels];
 	cv::split(mat, yCrCbChannels);
 	cv::Mat half(yCrCbChannels[0].size(), yCrCbChannels[0].type(), 127);
 
