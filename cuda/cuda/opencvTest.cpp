@@ -10,6 +10,13 @@ cv::Mat readImage()
 	return img;
 }
 
+cv::Mat readImageWithName(string im_name)
+{
+	// CV_LOAD_IMAGE_COLOR = loads the image in the BGR format
+	cv::Mat img = imread(im_name, cv::IMREAD_COLOR);
+	return img;
+}
+
 void displayImage(cv::Mat mat) {
 	// WINDOW_NORMAL = image will resize itself according to the current window size
 	cv::namedWindow("OpenCV_Test_Window", cv::WINDOW_NORMAL);

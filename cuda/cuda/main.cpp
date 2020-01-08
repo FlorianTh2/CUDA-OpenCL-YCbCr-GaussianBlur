@@ -1,5 +1,9 @@
 #include "main.h"
-
+// zum Einbinden: 1. zip herunterladen 2. entpacken 3. c/c++ compiler als additional library hinzufügen (root pfad des ordners) 4. in Ordner die .bar aufführen+ warten + .b2 ausführen+waren 5. dem linker als additional library hinzufügen (root/stage/lib-pfad)
+#include <boost/program_options.hpp>
+#include <iostream>
+#include <iterator>
+#include <algorithm>
 
 
 // unsigned char array to mat
@@ -7,6 +11,7 @@
 // adjustierte mat displayen (damit man vergleichen kann mit opencv-ver�nderte matrix)
 
 
+namespace po = boost::program_options;
 
 
 // deviceQuery(): gtx 750 ti
@@ -18,74 +23,83 @@
 
 int main(int argc, char** argv)
 {
-
-
-
+	//programStartArgumentHandling(argc, argv);
 	//colorConversionYCBCR();
-	gaussianFilter1();
+	gaussianFilter1("dice.png", 10.0, 7);
 	return 0;
 }
 
-void programStartArgumentHandling()
+
+
+
+void programStartArgumentHandling(int argc, char** argv)
 {
-	// name of programm; hier ./main
-	// not used anymore at the moment
-	string programName= argv[0];
 
-	// parameter to determine if user wants to get colorConversion-functionality or gaussian-blur
-	// colorConversion=0 -> user wants colorConversion; colorConversion=1 -> user wants gaussian-blur (and not colorConversion)
-	int colorConversion = argv[1]==vorhanden ? argv[1] : -1; --------------------------------------------------------------------- //.toInteger // get von *char einfach so zu string?
+	po::options_description desc("Allowed options");
+	desc.add_options()
+
+		// required
+		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur")
+		("image_name", po::value<string>(), "set name / path of image to read")
+
+		// only for gaussian blur
+		("sigma", po::value<double>(), "set sigma to use for filter")
+		("filter_height", po::value<int>(), "set height/width of filter to use (has to be odd)")
+		
+		//help
+		("help", "produce help message");
 
 
-	// name of image
-	string imageName = argv[2]==vorhanden ? argv[2] : "error";
 
-	// value of sigma for 
-	double sigma = argv[3]==vorhanden ? argv[1] : -1.0;--------------------------------------------------------------------- //.toInteger 
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::notify(vm);
 
-	// since filter is assumed to be symmetric only height (or width) is required
-	// has to be odd, e.g. 3,5,7,9,11,...
-	int filterHeight = argv[4]==vorhanden ? argv[1] : -1; --------------------------------------------------------------------- //.toInteger 
 
-	bool imageExistence = (imageName != "error" && opencv.doesExist) ? true : false;
 
-	if(colorConversion != 0 && colorConversion != 1 && imageName != "error")
-	{
-		if(imageExistence)
+	if (vm.count("task") && vm.count("image_name")) {
+		//cout << "Compression level was set to " << vm["compression"].as<int>() << ".\n";
+		if (readImageWithName(vm["image_name"].as<string>()).empty())
 		{
-		if(colorConversion == 0)
+			cout << "Image could not be found, stopping." << endl;
+			return;
+		}
+		if (vm["task"].as<int>() != 0 && vm["task"].as<int>() != 1)
 		{
-			colorConversionYCBCR();
+			cout << "Task was not 0 or 1" << endl;
+			return;
+		}
+
+		if (vm["task"].as<int>() == 0)
+		{
+			colorConversionYCBCR(vm["image_name"].as<string>());
+		}
+		else if(vm.count("sigma") && vm["sigma"].as<double>() > 0 && vm.count("filter_height") && (vm["filter_height"].as<int>() % 2) !=0)
+		{
+			gaussianFilter1(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
 		}
 		else
 		{
-			if(filterHeight != -1 && sigma != -1.0 && filterHeight > 1 && filterHeight%2!=0 && sigma > 0)
-			{
-				gaussianFilter1();
-			}
-			else
-			{
-				cout << "The arguments filterHeight and/or filterHeight are not correct or missng. Checked by condition: if(filterHeight != -1 && sigma != -1.0 && filterHeight > 1 && filterHeight%2!=0 && sigma > 0)" << endl;
-				return;
-			}
-		}
-		}
-		else
-		{
-			cout << "Imagename does not exist" << endl;
-			return
+			cout << "Parameter sigma or filter_height were somehow wrong or missing, stopping" << endl;
 		}
 	}
 	else
 	{
-		cout << "The arguments colorConversion (1) and/or imageName (2) [at least] are incorrect or missing. Please enter correct arguments" << endl;
+		cout << "Error at argument parsing" << endl;
+	}
+
+	if (vm.count("help")) {
+		cout << desc << "\n";
 		return;
 	}
-	
 
 }
 
-void gaussianFilter1()
+
+
+
+
+void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 {
 	Timer timer;
 	timer.start();
@@ -104,8 +118,8 @@ void gaussianFilter1()
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
 	const int sizeOfOneColorChannel = dataSize / 3;
 	// its full height, not from mid or somehing like that
-	int filterHeight = 7;
-	double sigma = 10.0;
+	int filterHeight = filter_height;
+	double sigma = sigmaPara;
 	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
 	int dataSizeResultImage = newImageWidth * newImageHeight;
@@ -174,7 +188,7 @@ void gaussianFilter1()
 
 
 
-void colorConversionYCBCR()
+void colorConversionYCBCR(string image_name)
 {
 	Timer timer;
 	timer.start();
