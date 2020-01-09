@@ -97,11 +97,11 @@ void analyseMatInput(cv::Mat mat)
 	cout << "depth\t" << GetMatDepth(mat) << endl;
 }
 
-cv::Mat applyGaussian(cv::Mat mat)
+cv::Mat applyGaussian(cv::Mat mat, int filterHeight, double sigma)
 {
 	cv::Mat resultMat;
 	// kernel size has to be odd
-	GaussianBlur(mat, resultMat, cv::Size(101, 101), 0, 0);
+	GaussianBlur(mat, resultMat, cv::Size(filterHeight, filterHeight), sigma);
 	return resultMat;
 }
 
@@ -222,7 +222,10 @@ void mainInOpencv() {
 
 
 
-
+void saveImage(string name, cv::Mat image)
+{
+	cv::imwrite(name, image); // A JPG FILE IS BEING SAVED;
+}
 
 
 

@@ -106,6 +106,7 @@ unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDi
 
 	cudaFree(&dev_data);
 	cudaFree(&dev_dataResult);
+	cudaDeviceReset();
 
 	return dataResult;
 }

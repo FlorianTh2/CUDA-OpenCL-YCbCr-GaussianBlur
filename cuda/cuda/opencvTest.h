@@ -32,3 +32,6 @@ cv::Mat convertMatRGB2BGR(cv::Mat mat);
 cv::Mat returnMatFromCharArrayOneChannel(uchar* data, std::tuple<int, int> size);
 cv::Mat readImageWithName(string im_name);
 cv::Mat bgra2bgr(cv::Mat image);
+void saveImage(string name, cv::Mat image);
+cv::Mat openCVGauss(cv::Mat image);
+cv::Mat applyGaussian(cv::Mat mat, int filterHeight, double sigma);

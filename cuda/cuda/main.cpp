@@ -1,6 +1,7 @@
 #include "main.h"
 // zum Einbinden: 1. zip herunterladen 2. entpacken 3. c/c++ compiler als additional library hinzufügen (root pfad des ordners) 4. in Ordner die .bar aufführen+ warten + .b2 ausführen+waren 5. dem linker als additional library hinzufügen (root/stage/lib-pfad)
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include <iterator>
 #include <algorithm>
@@ -25,9 +26,14 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
+
+
+	doBenchmark("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
+
+
 	//programStartArgumentHandling(argc, argv);
 	//colorConversionYCBCR("dice_large.png");
-	gaussianFilter1("dice_large.png", 10.0, 9); // Periodic_table_large
+	//gaussianFilter1("dice_large.png", 10.0, 9); // Periodic_table_large
 	return 0;
 }
 
@@ -38,7 +44,7 @@ void programStartArgumentHandling(int argc, char** argv)
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		// required
-		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur")
+		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur; 2=benchmark")
 		("image_name", po::value<string>(), "set name / path of image to read")
 
 		// only for gaussian blur
@@ -59,9 +65,9 @@ void programStartArgumentHandling(int argc, char** argv)
 			cout << "Image could not be found, stopping." << endl;
 			return;
 		}
-		if (vm["task"].as<int>() != 0 && vm["task"].as<int>() != 1)
+		if (vm["task"].as<int>() != 0 && vm["task"].as<int>() != 1 && vm["task"].as<int>() != 2)
 		{
-			cout << "Task was not 0 or 1" << endl;
+			cout << "Task was not 0 or 1 or 2" << endl;
 			return;
 		}
 
@@ -71,7 +77,12 @@ void programStartArgumentHandling(int argc, char** argv)
 		}
 		else if(vm.count("sigma") && vm["sigma"].as<double>() > 0 && vm.count("filter_height") && (vm["filter_height"].as<int>() % 2) !=0)
 		{
-			gaussianFilter1(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+			if(vm["task"].as<int>() == 1)
+				gaussianFilter1(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+			else
+			{
+				doBenchmark(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+			}
 		}
 		else
 		{
@@ -91,7 +102,8 @@ void programStartArgumentHandling(int argc, char** argv)
 }
 
 
-void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
+//return mat rgb
+cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 {
 	Timer timer;
 	timer.start();
@@ -106,6 +118,8 @@ void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	{
 		matBGR = readImageWithName(image_name);
 	}
+	matBGR = convertMatBGRToRGB(matBGR);
+
 
 	cv::Mat matBGRSplitted[channels];
 	cv::split(matBGR, matBGRSplitted);
@@ -157,15 +171,16 @@ void gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 
 	cv::Mat matBGRResult;
 	cv::merge(arrayChannelMatsResult, matBGRResult);
-	displayImage(matBGRResult);
 
 	//int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
 	free(resultChannels);
 	free(resultdata);
+	return matBGRResult;
 }
 
 
-void colorConversionYCBCR(string image_name)
+// return mat ycbcr
+cv::Mat colorConversionYCBCR(string image_name)
 {
 	Timer timer;
 	timer.start();
@@ -178,16 +193,12 @@ void colorConversionYCBCR(string image_name)
 	cv::Mat mat = convertMatBGRToRGB(matBGR);
 	analyseMatInput(mat);
 	tuple<int, int> imageSize = getMatSize(mat);
+
 	// so it DOES includes the channels
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
 
-	//dim3 gridDims((unsigned int)ceil((double)(width * height * 3 / blockDims.x)), 1, 1);
-	//dim3 blockDims(512, 1, 1);
-	//blur << <gridDims, blockDims >> > (dev_input, dev_output, width, height);
-	//dim3 blockDims(512, 1, 1);
 	dim3 blockDims(1, 1, 1);
-	// ceil=next-biggest-integer
-	//dim3 gridDims((unsigned int) ceil((double)(dataSize / blockDims.x)), 1, 1);
+
 	dim3 gridDims(1, 1, 1);
 
 	uchar* data = returnMatDataWithCharArray(mat);
@@ -197,14 +208,74 @@ void colorConversionYCBCR(string image_name)
 
 	timer.stop();
 	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
+	return matResultYCRCB;
 
-	cv::Mat opencvYCBCR = convertBRGToYcbcr(mat);
-	int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
-	cout << "differenceColorConversion: " << differenceColorConversion << endl;
+}
 
-	cv::Mat toDisplay1 = convertYcbcrToBRG(matResultYCRCB);
-	cv::Mat toDisplay2 = convertYcbcrToBRG(opencvYCBCR);
 
-	displayImages(toDisplay1, toDisplay2);
+void doBenchmark(string image_name, double sigmaPara, int filter_height)
+{
+	string outputFolder = "outputImages/";
+	createFolderIfNotExistent(outputFolder);
 
+	vector<string> imageNames = returnImageNamesInPath(image_name);
+	for (string imageInputPath : imageNames)
+	{
+
+		string imageName = getImageNameFromPath(imageInputPath);
+		cout << "im name:" << imageName << endl;
+
+		cv::Mat cudaProcessed = colorConversionYCBCR(imageInputPath);
+		cv::Mat opencvYCBCR = convertBRGToYcbcr(readImageWithName(imageInputPath));
+		int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, cudaProcessed);
+		cout << "differenceColorConversion: " << differenceColorConversion << endl;
+		saveImage(outputFolder+"YCBCR_"+ imageName, cudaProcessed);
+		saveImage(outputFolder + "_YCBCR_DIFFERENCE" + imageName, cudaProcessed - opencvYCBCR);
+
+
+		cv::Mat cudaProcessed2 = gaussianFilter1(imageInputPath, sigmaPara, filter_height);
+		cv::Mat opencvGaussian = convertMatBGRToRGB(applyGaussian(readImageWithName(imageInputPath), filter_height, sigmaPara));
+		saveImage(outputFolder + "Gaussian_" + imageName, cudaProcessed2);
+		saveImage(outputFolder + "Gaussian_OPENCV_" + imageName, opencvGaussian);
+
+	}
+
+
+
+}
+
+
+void createFolderIfNotExistent(string pathPara)
+{
+	const char* path = pathPara.c_str();
+	boost::filesystem::path dir(path);
+	if (boost::filesystem::create_directory(dir))
+	{
+		std::cerr << "Directory Created: " << pathPara << std::endl;
+	}
+}
+
+
+vector<string> returnImageNamesInPath(string path)
+{
+	vector<string> imageNames;
+	if (boost::filesystem::is_directory(path)) {
+		std::cout << path << " is a directory containing:\n";
+		for (boost::filesystem::directory_entry& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(path), {}))
+		{
+			std::cout << entry << "\n";
+			imageNames.push_back(entry.path().string());
+		}
+
+	}
+	return imageNames;
+}
+
+
+string getImageNameFromPath(string path)
+{
+	std::string s = path;
+	std::string delimiter = "\\";
+	std::string token = s.substr(s.find(delimiter));
+	return token.substr(1, token.size() - 1);
 }

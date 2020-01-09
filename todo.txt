@@ -1,25 +1,9 @@
--richtige result-image größe finden
--von only grid.x zu blockdim
--variable channels (umstellen, dass alpha weggenommen wird)
-- weg von single calles for each channel to all data at ones (and when mod or something like that) einfach so lassen
-- command line argument parsing
+-ycbcr berichtigen (irgendwie falsche umwandlung)
+- gaussian + ycbcr zusammen error beheben
+-benchmarks nehmen:
+	ycbcr: wie lange mit opencv mit jeder bildgroesse
+	ycbcr: wie lange mit cuda mit jeder bildgroesse
+	gaussian: wie lange mit opencv mit jeder bildgroesse
+	gaussian: wie lange mit cuda mit jeder bildgroesse
 
-//algorithmus eventuell berichtigen
-
-
-- input images mit verschiedenen größen heraussuchen
-- bild speichern algo anlegen
-	wie speichere ich 1 bild
-	wie erstelle ich 1 ordner
-	wie bekomme ich alle Bildnamen eines ordners
--command line eine option hinzufügen: bm=benchmark
--gaus mit opencv umsetzen
--ycbcr mit opencv umsetzen
--rausnehmen, dass von ycbcr wieder nach rgb zurückgerechnet wird
-
-- algorithmus der 
-	1. ycbcr mit opencv macht (mit allen files eines ordners) und ergebnis sowie minusbild abspeichert
-	2. ycbcr mit grafikkarte macht (mit allen files eines ordners)  und ergebnis sowie minusbild abspeichert
-- funktion unter bm abspeichern
-	1. gauss mit opencv macht (mit allen files eines ordners) und ergebnis sowie minusbild abspeichert
-	2. gauss mit grafikkarte macht (mit allen files eines ordners)  und ergebnis sowie minusbild abspeichert
+(gaussian blur wird dunkler mit ansteigender filter groesse -> Fehler beheben)
