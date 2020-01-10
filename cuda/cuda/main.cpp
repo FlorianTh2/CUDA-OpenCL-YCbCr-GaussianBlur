@@ -127,18 +127,23 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	matBGR = convertMatBGRToRGB(matBGR);
 
 
-	cv::Mat matBGRSplitted[channels];
-	cv::split(matBGR, matBGRSplitted);
+	/////////////////////cv::Mat matBGRSplitted[channels];
+	/////////////////////cv::split(matBGR, matBGRSplitted);
 
 	tuple<int, int> imageSize = getMatSize(matBGR);
 	// so it DOES includes the channels
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
-	const int sizeOfOneColorChannel = dataSize / 3;
+	const int sizeOfOneColorChannel = dataSize / channels;
 	// its full height, not from mid or somehing like that
 	int filterHeight = filter_height;
 	double sigma = sigmaPara;
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	int dataSizeResultImage = newImageWidth * newImageHeight;
 
 	int maxThreadsInBlockX = sqrt(1024);
@@ -150,38 +155,19 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	// we need: 1800x1600
 	// we have indexes: 1024*1024*2*2
 	dim3 blockDims = dim3(maxThreadsInBlockX, maxThreadsInBlockY,1);
+
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! current only for 1 channel
 	dim3 gridDims = dim3(ceil(newImageHeight / (float) maxThreadsInBlockY), ceil(newImageWidth / (float) maxThreadsInBlockX),1);
 
 
-	unsigned char** resultChannels = (unsigned char**)malloc(channels * sizeof(unsigned char*));
+	uchar* resultdata = applyGaussianFilter(returnMatDataWithCharArray(matBGR), dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
 
 
-	for (int i = 0; i < channels; i++) {
-		resultChannels[i] = returnMatDataWithCharArray(matBGRSplitted[i]);
-	}
+	uchar* resultdata = applyGaussianFilter(returnMatDataWithCharArray(matBGR), dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
+	cv::Mat resultMat = returnMatFromCharArray(resultdata, imageSizeResultImage);
 
-	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
-
-	std::vector<cv::Mat> arrayChannelMatsResult;
-
-
-
-	// merges processed channels
-	for (size_t i = 0; i < channels; i++)
-	{
-		tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
-		arrayChannelMatsResult.push_back(returnMatFromCharArrayOneChannel(resultdata[i], imageSizeResultImage));
-	}
-
-	cv::Mat matBGRResult;
-	cv::merge(arrayChannelMatsResult, matBGRResult);
-
-
-	// not possible due to different row and comumn number (since our algo cutts some rows/columns away)
-	//int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
-	free(resultChannels);
 	free(resultdata);
-	return matBGRResult;
+	return resultMat;
 }
 
 
