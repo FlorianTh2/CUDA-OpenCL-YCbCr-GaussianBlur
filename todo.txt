@@ -1,4 +1,5 @@
 -ycbcr berichtigen (irgendwie falsche umwandlung)
+-ycbcr cuda dimension anpassen
 - gaussian + ycbcr zusammen error beheben
 -benchmarks nehmen:
 	ycbcr: wie lange mit opencv mit jeder bildgroesse

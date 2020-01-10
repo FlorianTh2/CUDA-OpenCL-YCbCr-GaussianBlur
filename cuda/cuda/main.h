@@ -13,5 +13,6 @@ int main(int argc, char** argv);
 void programStartArgumentHandling(int argc, char** argv);
 void createFolderIfNotExistent(string pathPara);
 vector<string> returnImageNamesInPath(string path);
-void doBenchmark(string image_name, double sigmaPara, int filter_height);
+void allYCBCR(string image_name, double sigmaPara, int filter_height);
 string getImageNameFromPath(string path);
+void allGaussian(string image_name, double sigmaPara, int filter_height);

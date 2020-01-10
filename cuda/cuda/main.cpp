@@ -28,11 +28,15 @@ int main(int argc, char** argv)
 {
 
 
-	doBenchmark("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
+	//allYCBCR("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
+	allGaussian("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
 
 
 	//programStartArgumentHandling(argc, argv);
-	//colorConversionYCBCR("dice_large.png");
+	//cv::Mat mat = colorConversionYCBCR("dice.png");
+
+	//cv::Mat mat2 = convertBRGToYcbcr(readImageWithName("dice.png"));
+	//displayImages(mat, mat2);
 	//gaussianFilter1("dice_large.png", 10.0, 9); // Periodic_table_large
 	return 0;
 }
@@ -44,7 +48,7 @@ void programStartArgumentHandling(int argc, char** argv)
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		// required
-		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur; 2=benchmark")
+		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur; 2=all_ycbcr_all_images; 3=gaussian_all_images")
 		("image_name", po::value<string>(), "set name / path of image to read")
 
 		// only for gaussian blur
@@ -59,13 +63,12 @@ void programStartArgumentHandling(int argc, char** argv)
 	po::notify(vm);
 
 	if (vm.count("task") && vm.count("image_name")) {
-		//cout << "Compression level was set to " << vm["compression"].as<int>() << ".\n";
 		if (readImageWithName(vm["image_name"].as<string>()).empty())
 		{
 			cout << "Image could not be found, stopping." << endl;
 			return;
 		}
-		if (vm["task"].as<int>() != 0 && vm["task"].as<int>() != 1 && vm["task"].as<int>() != 2)
+		if (vm["task"].as<int>() != 0 && vm["task"].as<int>() != 1 && vm["task"].as<int>() != 2 && vm["task"].as<int>() != 3)
 		{
 			cout << "Task was not 0 or 1 or 2" << endl;
 			return;
@@ -79,9 +82,13 @@ void programStartArgumentHandling(int argc, char** argv)
 		{
 			if(vm["task"].as<int>() == 1)
 				gaussianFilter1(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+			else if (vm["task"].as<int>() == 3)
+			{
+				allGaussian(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+			}
 			else
 			{
-				doBenchmark(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+				allYCBCR(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
 			}
 		}
 		else
@@ -105,8 +112,7 @@ void programStartArgumentHandling(int argc, char** argv)
 //return mat rgb
 cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 {
-	Timer timer;
-	timer.start();
+
 	// alpha channel will be ignored in this project since it is about gpu-computing
 	const int channels = 3;
 	cv::Mat matBGR;
@@ -124,7 +130,6 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	cv::Mat matBGRSplitted[channels];
 	cv::split(matBGR, matBGRSplitted);
 
-	analyseMatInput(matBGR);
 	tuple<int, int> imageSize = getMatSize(matBGR);
 	// so it DOES includes the channels
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
@@ -157,10 +162,9 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 
 	uchar** resultdata = applyGaussianFilter(resultChannels, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
 
-	timer.stop();
-	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
-
 	std::vector<cv::Mat> arrayChannelMatsResult;
+
+
 
 	// merges processed channels
 	for (size_t i = 0; i < channels; i++)
@@ -172,6 +176,8 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	cv::Mat matBGRResult;
 	cv::merge(arrayChannelMatsResult, matBGRResult);
 
+
+	// not possible due to different row and comumn number (since our algo cutts some rows/columns away)
 	//int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, matResultYCRCB);
 	free(resultChannels);
 	free(resultdata);
@@ -182,8 +188,7 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 // return mat ycbcr
 cv::Mat colorConversionYCBCR(string image_name)
 {
-	Timer timer;
-	timer.start();
+
 	int channels = 3;
 	cv::Mat matBGR = readImageWithName(image_name);
 	if (matBGR.channels() == 4)
@@ -191,29 +196,63 @@ cv::Mat colorConversionYCBCR(string image_name)
 		matBGR = bgra2bgr(matBGR);
 	}
 	cv::Mat mat = convertMatBGRToRGB(matBGR);
-	analyseMatInput(mat);
 	tuple<int, int> imageSize = getMatSize(mat);
 
 	// so it DOES includes the channels
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
 
-	dim3 blockDims(1, 1, 1);
 
-	dim3 gridDims(1, 1, 1);
+	int maxThreadsInBlockX = 1024;
+	dim3 blockDims(maxThreadsInBlockX, 1, 1);
+	dim3 gridDims(ceil((dataSize / 3) / maxThreadsInBlockX), 1, 1);
 
 	uchar* data = returnMatDataWithCharArray(mat);
 	uchar* resultdata = convertRGBToYCBCR(data, dataSize, gridDims, blockDims);
 
 	cv::Mat matResultYCRCB = returnMatFromCharArray(resultdata, imageSize);
 
-	timer.stop();
-	cout << "Since start " << timer.elapsedMilliseconds() << "ms passed" << endl;
 	return matResultYCRCB;
 
 }
 
 
-void doBenchmark(string image_name, double sigmaPara, int filter_height)
+void allYCBCR(string image_name, double sigmaPara, int filter_height)
+{
+	string outputFolder = "outputImages/";
+	createFolderIfNotExistent(outputFolder);
+
+	vector<string> imageNames = returnImageNamesInPath(image_name);
+	for (string imageInputPath : imageNames)
+	{
+
+
+		string imageName = getImageNameFromPath(imageInputPath);
+
+		Timer timer;
+		timer.start();
+		cv::Mat cudaProcessed = colorConversionYCBCR(imageInputPath);
+		timer.stop();
+		cout << "Needed seconds for cuda ColorConversion with image: " << imageName << " = " << timer.elapsedMilliseconds() << endl;
+
+		timer.start();
+		cv::Mat opencvYCBCR = convertBRGToYcbcr(readImageWithName(imageInputPath));
+		timer.stop();
+		cout << "Needed seconds for opencv ColorConversion with image: " << imageName << " = " << timer.elapsedMilliseconds() << endl;
+
+
+
+		int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, cudaProcessed);
+		cout << "differenceColorConversion: " << differenceColorConversion << endl;
+		saveImage(outputFolder+"YCBCR_"+ imageName, cudaProcessed);
+		saveImage(outputFolder + "_YCBCR_DIFFERENCE" + imageName, cudaProcessed - opencvYCBCR);
+
+
+	}
+
+}
+
+
+void allGaussian(string image_name, double sigmaPara, int filter_height)
 {
 	string outputFolder = "outputImages/";
 	createFolderIfNotExistent(outputFolder);
@@ -225,23 +264,22 @@ void doBenchmark(string image_name, double sigmaPara, int filter_height)
 		string imageName = getImageNameFromPath(imageInputPath);
 		cout << "im name:" << imageName << endl;
 
-		cv::Mat cudaProcessed = colorConversionYCBCR(imageInputPath);
-		cv::Mat opencvYCBCR = convertBRGToYcbcr(readImageWithName(imageInputPath));
-		int differenceColorConversion = differenceBetweenOpenCVAndGPURendered(opencvYCBCR, cudaProcessed);
-		cout << "differenceColorConversion: " << differenceColorConversion << endl;
-		saveImage(outputFolder+"YCBCR_"+ imageName, cudaProcessed);
-		saveImage(outputFolder + "_YCBCR_DIFFERENCE" + imageName, cudaProcessed - opencvYCBCR);
-
-
+		Timer timer;
+		timer.start();
 		cv::Mat cudaProcessed2 = gaussianFilter1(imageInputPath, sigmaPara, filter_height);
+		timer.stop();
+		cout << "Needed seconds for cuda gaussian with image: " << imageName << " = " << timer.elapsedMilliseconds() << endl;
+
+
+		timer.start();
 		cv::Mat opencvGaussian = convertMatBGRToRGB(applyGaussian(readImageWithName(imageInputPath), filter_height, sigmaPara));
+		timer.stop();
+		cout << "Needed seconds for opencv ColorConversion with image: " << imageName << " = " << timer.elapsedMilliseconds() << endl;
+
 		saveImage(outputFolder + "Gaussian_" + imageName, cudaProcessed2);
 		saveImage(outputFolder + "Gaussian_OPENCV_" + imageName, opencvGaussian);
 
 	}
-
-
-
 }
 
 
@@ -263,7 +301,6 @@ vector<string> returnImageNamesInPath(string path)
 		std::cout << path << " is a directory containing:\n";
 		for (boost::filesystem::directory_entry& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(path), {}))
 		{
-			std::cout << entry << "\n";
 			imageNames.push_back(entry.path().string());
 		}
 

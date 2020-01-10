@@ -33,3 +33,9 @@ double Timer::elapsedSeconds()
 {
 	return elapsedMilliseconds() / 1000.0;
 }
+
+
+void Timer::reset()
+{
+
+}

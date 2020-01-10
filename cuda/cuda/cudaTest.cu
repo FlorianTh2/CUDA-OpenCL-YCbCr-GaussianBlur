@@ -18,8 +18,6 @@ __global__ void test()
 __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* dev_dataResult, int dataSize)
 {
 	int channels = 3;
-	//dataSize /= 3;
-	// blockid * wieVieleBl�ckeGesamt + (threadID*channels)
 	int globalThreadId = (blockIdx.x * channels) * blockDim.x + (threadIdx.x*channels);
 
 	// grid-stride loop
@@ -28,23 +26,16 @@ __global__ void dev_convertColorSpace(unsigned char* dev_data, unsigned char* de
 		unsigned char r = dev_data[dataElement + 0];
 		unsigned char g = dev_data[dataElement +1];
 		unsigned char b = dev_data[dataElement +2];
-		//*r = 16+ (((*r << 6) + (*r << 1) + (*g << 7) + *g + (*b << 4) + (*b << 3) + *b) >> 8); // Y
-		//*g= 128 + ((-((*r<<5)+(*r<<2)+(*r<<1))-((*g<<6)+(*g<<3)+(*g<<1))+(*b<<7)-(*b<<4))>>8); // Cb
-		//*b = 128 + (((*r<<7)-(*r<<4)-((*g<<6)+(*g<<5)-(*g<<1))-((*b<<4)+(*b<<1)))>>8); // Cr
-		//*(dev_dataResult + dataElement + 0) = *r;
-		//*(dev_dataResult + dataElement + 1) = *g;
-		//*(dev_dataResult + dataElement + 2) = *b;
 
 		dev_dataResult[dataElement + 0] = 16 + (((r << 6) + (r << 1) + (g << 7) + g + (b << 4) + (b << 3) + b) >> 8); // Y
-		dev_dataResult[dataElement + 1] = 128 + ((-((r << 5) + (r << 2) + (r << 1)) - ((g << 6) + (g << 3) + (g << 1)) + (b << 7) - (b << 4)) >> 8); // Cb
-		dev_dataResult[dataElement + 2] = 128 + (((r << 7) - (r << 4) - ((g << 6) + (g << 5) - (g << 1)) - ((b << 4) + (b << 1))) >> 8); // Cr
+		dev_dataResult[dataElement + 1] = 128 + (((r << 7) - (r << 4) - ((g << 6) + (g << 5) - (g << 1)) - ((b << 4) + (b << 1))) >> 8); // Cb
+		dev_dataResult[dataElement + 2] = 128 + ((-((r << 5) + (r << 2) + (r << 1)) - ((g << 6) + (g << 3) + (g << 1)) + (b << 7) - (b << 4)) >> 8); // Cr
 	}
 }
 
 
 __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_dataResult, double* filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
-
 	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 	int threadId = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
 	int currentIndex = threadId;
@@ -52,21 +43,15 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 	int imageYSource = currentIndex / imageWidth;
 	int imageXSource = currentIndex % imageWidth;
 
-
 	int cuttedAwayTotal = filterHeight / 2;
 
+	if (imageYSource <  cuttedAwayTotal || imageYSource >(imageHeight -1 -cuttedAwayTotal) || imageXSource < cuttedAwayTotal || imageXSource >(imageWidth -1 -cuttedAwayTotal))
+	{
+		return;
+	}
 
-		//if (imageYSource <  cuttedAway && imageYSource >(imageHeight - cuttedAway - 1) && imageXSource <  cuttedAway && imageXSource >(imageWidth - cuttedAway - 1))
-		//{
-		//return;
-		//}
-		if (imageYSource <  cuttedAwayTotal || imageYSource >(imageHeight -1 -cuttedAwayTotal) || imageXSource < cuttedAwayTotal || imageXSource >(imageWidth -1 -cuttedAwayTotal))
-		{
-			return;
-		}
-
-		int newImageHeight = imageHeight - filterHeight+1;
-		int newImageWidth = imageWidth - filterHeight+1;
+	int newImageHeight = imageHeight - filterHeight+1;
+	int newImageWidth = imageWidth - filterHeight+1;
 
 	//height
 	for (int h = 0; h < filterHeight; h++)
@@ -85,7 +70,6 @@ __global__ void dev_applyGaussian(unsigned char* dev_data, unsigned char* dev_da
 	//for (int i = 0; i < 1; i++) {
 	//	dev_dataResult[0] = 1;
 	//}
-
 
 }
 

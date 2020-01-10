@@ -1,0 +1,25 @@
+allGaussian("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
+
+images/ is a directory containing:
+im name:dice_600x800.png
+Needed seconds for cuda gaussian with image: dice_600x800.png = 736
+Needed seconds for opencv ColorConversion with image: dice_600x800.png = 144
+im name:dice_large_1754x1554.png
+Needed seconds for cuda gaussian with image: dice_large_1754x1554.png = 730
+Needed seconds for opencv ColorConversion with image: dice_large_1754x1554.png = 507
+im name:lufthansa-tk-big_8192 x 4608.png
+Needed seconds for cuda gaussian with image: lufthansa-tk-big_8192 x 4608.png = 8793
+Needed seconds for opencv ColorConversion with image: lufthansa-tk-big_8192 x 4608.png = 7020
+im name:Periodic_table_large_6000x3300.png
+Needed seconds for cuda gaussian with image: Periodic_table_large_6000x3300.png = 4687
+Needed seconds for opencv ColorConversion with image: Periodic_table_large_6000x3300.png = 3516
+im name:pnglogo-blk_1024x768.png
+Needed seconds for cuda gaussian with image: pnglogo-blk_1024x768.png = 273
+Needed seconds for opencv ColorConversion with image: pnglogo-blk_1024x768.png = 149
+im name:universum_8192 x 8192.jpg
+Needed seconds for cuda gaussian with image: universum_8192 x 8192.jpg = 11205
+Needed seconds for opencv ColorConversion with image: universum_8192 x 8192.jpg = 8777
+
+C:\Users\s0558_000\Desktop\github\CUDA-OpenCL-YCbCr-GaussianBlur\cuda\cuda\x64\Debug\cuda.exe (process 10092) exited with code 0.
+To automatically close the console when debugging stops, enable Tools->Options->Debugging->Automatically close the console when debugging stops.
+Press any key to close this window . . .

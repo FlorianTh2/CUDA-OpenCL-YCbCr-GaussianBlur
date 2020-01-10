@@ -21,4 +21,5 @@ class Timer
 		void stop();
 		double elapsedMilliseconds();
 		double elapsedSeconds();
+		void reset();
 };
