@@ -207,68 +207,46 @@ unsigned char* gaussianOneChannel(unsigned char * data, int dataSize, dim3 gridD
 
 
 
-unsigned char* gaussianAllChannel(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims, double* filter, int imageHeight, int imageWidth, int filterHeight)
+__global__ void dev_applyGaussianALL(unsigned char* dev_data, unsigned char* dev_dataResult, double* filter, int dataSize, int imageHeight, int imageWidth, int filterHeight)
 {
-
 	int channels = 3;
-	int newImageWidth = channels*(imageWidth - filterHeight + 1);
-	int newImageHeight = channels * (imageHeight - filterHeight + 1);
-	int dataSizeResultImage = newImageWidth * newImageHeight;
-	unsigned char* dataResult = (unsigned char*)malloc(sizeof(unsigned char) * dataSizeResultImage);
-
-	unsigned char* dev_data;
-	unsigned char* dev_dataResult;
-	double* dev_filter;
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	int threadId = blockId * (blockDim.x * blockDim.y) + (threadIdx.y * blockDim.x) + threadIdx.x;
+	int currentIndex = threadId;
+	int currentChannel = currentIndex % channels;
 
 
+	int imageYSource = currentIndex / (channel*imageWidth);
+	int imageXSource = currentIndex % (channel*imageWidth);
 
-	cudaMalloc(&dev_filter, sizeof(double) * filterHeight * filterHeight);
-	cudaMemcpy(dev_filter, filter, sizeof(double) * filterHeight * filterHeight, cudaMemcpyHostToDevice);
+	int cuttedAwayTotal = channel*(filterHeight / 2);
 
-
-
-	cudaMalloc(&dev_data, sizeof(unsigned char) * dataSize);
-	cudaError_t error = cudaGetLastError();
-	if (error != cudaSuccess)
+	if (imageYSource <  cuttedAwayTotal || imageYSource >(channel*imageHeight - 1 - cuttedAwayTotal) || imageXSource < cuttedAwayTotal || imageXSource >(channel*imageWidth - 1 - cuttedAwayTotal))
 	{
-		printf("CUDA error0: %s\n", cudaGetErrorString(error));
-		exit(-1);
-	}
-	cudaMalloc(&dev_dataResult, sizeof(unsigned char) * dataSizeResultImage);
-
-	error = cudaGetLastError();
-	if (error != cudaSuccess)
-	{
-		printf("CUDA error1: %s\n", cudaGetErrorString(error));
-		exit(-1);
-	}
-	cudaMemcpy(dev_data, data, sizeof(unsigned char) * dataSize, cudaMemcpyHostToDevice);
-	error = cudaGetLastError();
-	if (error != cudaSuccess)
-	{
-		printf("CUDA error2: %s\n", cudaGetErrorString(error));
-		exit(-1);
+		return;
 	}
 
-	dev_applyGaussianALL << < gridDims, blockDims >> > (dev_data, dev_dataResult, dev_filter, dataSize, imageHeight, imageWidth, filterHeight);
+	int newImageHeight = channel*(imageHeight - filterHeight + 1);
+	int newImageWidth = channel*(imageWidth - filterHeight + 1);
 
-	error = cudaGetLastError();
-	if (error != cudaSuccess)
+	//height
+	for (int h = 0; h < filterHeight; h++)
 	{
-		printf("CUDA error3: %s\n", cudaGetErrorString(error));
-		exit(-1);
+		//width
+		for (int w = 0; w < filterHeight; w++)
+		{
+			double tmp = filter[h * filterHeight + w] * dev_data[(imageYSource + (channel*h)) * (channel*imageWidth) + (imageXSource + (channel*w))];
+
+			dev_dataResult[(imageYSource - cuttedAwayTotal) * (channel* newImageWidth) + (imageXSource - cuttedAwayTotal)] += tmp;
+		}
 	}
 
 
-	cudaMemcpy(dataResult, dev_dataResult, sizeof(unsigned char) * dataSizeResultImage, cudaMemcpyDeviceToHost);
+	//// max = 7000000 with block- and grid-dim = 1
+	//for (int i = 0; i < 1; i++) {
+	//	dev_dataResult[0] = 1;
+	//}
 
-
-	//cudaFree(&dev_data);
-	//cudaFree(&dev_dataResult);
-	//cudaFree(&dev_filter);
-	//cudaDeviceReset();
-
-	return dataResult;
 }
 
 
