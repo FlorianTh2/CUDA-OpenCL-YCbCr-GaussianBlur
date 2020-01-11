@@ -29,15 +29,16 @@ int main(int argc, char** argv)
 
 
 	//allYCBCR("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
-	allGaussian("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
+	//allGaussian("images/", 3.0, 5); // präsentation: 	doBenchmark("images/", 3.0, 5);
 
 
-	//programStartArgumentHandling(argc, argv);
+	programStartArgumentHandling(argc, argv);
 	//cv::Mat mat = colorConversionYCBCR("dice.png");
-
 	//cv::Mat mat2 = convertBRGToYcbcr(readImageWithName("dice.png"));
-	//displayImages(mat, mat2);
-	//gaussianFilter1("dice_large.png", 10.0, 9); // Periodic_table_large
+	//cv::Mat mat2 = gaussianFilter1("universum_8192x8192.jpg", 5.0, 1); // Periodic_table_large_6000x3300.png // lufthansa-tk-big_8192x4608.png // dice_large_1754x1554
+
+
+	//displayImage(mat2);
 	return 0;
 }
 
@@ -63,11 +64,11 @@ void programStartArgumentHandling(int argc, char** argv)
 	po::notify(vm);
 
 	if (vm.count("task") && vm.count("image_name")) {
-		if (readImageWithName(vm["image_name"].as<string>()).empty())
-		{
-			cout << "Image could not be found, stopping." << endl;
-			return;
-		}
+		//if (readImageWithName(vm["image_name"].as<string>()).empty())
+		//{
+		//	cout << "Image could not be found, stopping." << endl;
+		//	return;
+		//}
 		if (vm["task"].as<int>() != 0 && vm["task"].as<int>() != 1 && vm["task"].as<int>() != 2 && vm["task"].as<int>() != 3)
 		{
 			cout << "Task was not 0 or 1 or 2" << endl;
@@ -81,13 +82,18 @@ void programStartArgumentHandling(int argc, char** argv)
 		else if(vm.count("sigma") && vm["sigma"].as<double>() > 0 && vm.count("filter_height") && (vm["filter_height"].as<int>() % 2) !=0)
 		{
 			if(vm["task"].as<int>() == 1)
-				gaussianFilter1(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
+			{
+				cout << "Task 1 started!" << endl;
+			displayImage(gaussianFilter1(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>()));
+			}
 			else if (vm["task"].as<int>() == 3)
 			{
+				cout << "Task 3 started!" << endl;
 				allGaussian(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
 			}
 			else
 			{
+				cout << "Task 2 started!" << endl;
 				allYCBCR(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
 			}
 		}
@@ -112,42 +118,26 @@ void programStartArgumentHandling(int argc, char** argv)
 //return mat rgb
 cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 {
-
 	// alpha channel will be ignored in this project since it is about gpu-computing
 	const int channels = 3;
 	cv::Mat matBGR;
 	if (readImageWithName(image_name).channels() == 4)
-	{
 		matBGR = bgra2bgr(readImageWithName(image_name));
-	}
 	else
-	{
 		matBGR = readImageWithName(image_name);
-	}
-	matBGR = convertMatBGRToRGB(matBGR);
-
-
-	/////////////////////cv::Mat matBGRSplitted[channels];
-	/////////////////////cv::split(matBGR, matBGRSplitted);
 
 	tuple<int, int> imageSize = getMatSize(matBGR);
 	// so it DOES includes the channels
 	int dataSize = get<0>(imageSize) * get<1>(imageSize) * channels;
 	const int sizeOfOneColorChannel = dataSize / channels;
-	// its full height, not from mid or somehing like that
 	int filterHeight = filter_height;
 	double sigma = sigmaPara;
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	int newImageWidth = get<0>(imageSize) - filterHeight + 1;
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	int newImageHeight = get<1>(imageSize) - filterHeight + 1;
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	tuple<int, int> imageSizeResultImage = make_tuple(newImageWidth, newImageHeight);
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	int dataSizeResultImage = newImageWidth * newImageHeight;
-
 	int maxThreadsInBlockX = sqrt(1024);
 	int maxThreadsInBlockY = sqrt(1024);
+
 	// example: 1800x1600
 	// blockDims = (1024,1024,1)
 	// gridDims = (~1700/1024, ~1500/1024,1) = (2,2,1)
@@ -156,17 +146,14 @@ cv::Mat gaussianFilter1(string image_name, double sigmaPara, int filter_height)
 	// we have indexes: 1024*1024*2*2
 	dim3 blockDims = dim3(maxThreadsInBlockX, maxThreadsInBlockY,1);
 
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! current only for 1 channel
-	dim3 gridDims = dim3(ceil(newImageHeight / (float) maxThreadsInBlockY), ceil(newImageWidth / (float) maxThreadsInBlockX),1);
+	dim3 gridDims = dim3(ceil((newImageHeight*channels) / (float) maxThreadsInBlockY), ceil((newImageWidth*channels) / (float) maxThreadsInBlockX),1);
 
+	uchar* tmp1 = returnMatDataWithCharArray(matBGR);
 
-	uchar* resultdata = applyGaussianFilter(returnMatDataWithCharArray(matBGR), dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
+	uchar* resultdata = applyGaussianFilter(tmp1, dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
 
-
-	uchar* resultdata = applyGaussianFilter(returnMatDataWithCharArray(matBGR), dataSize, gridDims, blockDims, channels, get<1>(imageSize), get<0>(imageSize), filterHeight, sigma);
 	cv::Mat resultMat = returnMatFromCharArray(resultdata, imageSizeResultImage);
 
-	free(resultdata);
 	return resultMat;
 }
 
@@ -244,6 +231,9 @@ void allGaussian(string image_name, double sigmaPara, int filter_height)
 	createFolderIfNotExistent(outputFolder);
 
 	vector<string> imageNames = returnImageNamesInPath(image_name);
+	cout << "Inputpath: " << image_name << endl;
+
+	cout << "Outputpath: " << outputFolder << endl;
 	for (string imageInputPath : imageNames)
 	{
 

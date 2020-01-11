@@ -16,7 +16,7 @@ cv::Mat readImage()
 cv::Mat readImageWithName(string im_name)
 {
 	// CV_LOAD_IMAGE_COLOR = loads the image in the BGR format
-	cv::Mat img = imread(im_name, cv::IMREAD_COLOR);
+	cv::Mat img = cv::imread(im_name, cv::IMREAD_COLOR);
 	return img;
 }
 
@@ -139,7 +139,6 @@ uchar * returnMatDataWithCharArray(cv::Mat mat)
 cv::Mat returnMatFromCharArray(uchar* data, std::tuple<int, int> size)
 {
 	const cv::Mat img(cv::Size(get<0>(size), get<1>(size)), CV_8UC3, data);
-	bool check;
 	return img;
 }
 

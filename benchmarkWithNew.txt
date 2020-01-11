@@ -1,0 +1,47 @@
+Florian@Flo MINGW64 ~/Desktop/github/CUDA-OpenCL-YCbCr-GaussianBlur/cuda/cuda (master)
+$ ./cuda.exe --task "2" --image_name "images/" --sigma 5 --filter_height 3
+Task 2 started!
+images/ is a directory containing:
+Needed seconds for cuda ColorConversion with image: dice_600x800.png = 349
+Needed seconds for opencv ColorConversion with image: dice_600x800.png = 67
+differenceColorConversion: 1061331
+Needed seconds for cuda ColorConversion with image: dice_large_1754x1554.png = 235
+Needed seconds for opencv ColorConversion with image: dice_large_1754x1554.png = 255
+differenceColorConversion: 36974594
+Needed seconds for cuda ColorConversion with image: lufthansa-tk-big_8192 x 4608.png = 2979
+Needed seconds for opencv ColorConversion with image: lufthansa-tk-big_8192 x 4608.png = 3923
+differenceColorConversion: 263412664
+Needed seconds for cuda ColorConversion with image: Periodic_table_large_6000x3300.png = 1553
+Needed seconds for opencv ColorConversion with image: Periodic_table_large_6000x3300.png = 2021
+differenceColorConversion: 338286631
+Needed seconds for cuda ColorConversion with image: pnglogo-blk_1024x768.png = 141
+Needed seconds for opencv ColorConversion with image: pnglogo-blk_1024x768.png = 90
+differenceColorConversion: 780894
+Needed seconds for cuda ColorConversion with image: universum_8192 x 8192.jpg = 2381
+Needed seconds for opencv ColorConversion with image: universum_8192 x 8192.jpg = 4102
+differenceColorConversion: 180845556
+
+Florian@Flo MINGW64 ~/Desktop/github/CUDA-OpenCL-YCbCr-GaussianBlur/cuda/cuda (master)
+$ ./cuda.exe --task "3" --image_name "images/" --sigma 5 --filter_height 3
+Task 3 started!
+images/ is a directory containing:
+Inputpath: images/
+Outputpath: outputImages/
+im name:dice_600x800.png
+Needed seconds for cuda gaussian with image: dice_600x800.png = 412
+Needed seconds for opencv ColorConversion with image: dice_600x800.png = 76
+im name:dice_large_1754x1554.png
+Needed seconds for cuda gaussian with image: dice_large_1754x1554.png = 555
+Needed seconds for opencv ColorConversion with image: dice_large_1754x1554.png = 320
+im name:lufthansa-tk-big_8192 x 4608.png
+Needed seconds for cuda gaussian with image: lufthansa-tk-big_8192 x 4608.png = 8180
+Needed seconds for opencv ColorConversion with image: lufthansa-tk-big_8192 x 4608.png = 4830
+im name:Periodic_table_large_6000x3300.png
+Needed seconds for cuda gaussian with image: Periodic_table_large_6000x3300.png = 4231
+Needed seconds for opencv ColorConversion with image: Periodic_table_large_6000x3300.png = 2506
+im name:pnglogo-blk_1024x768.png
+Needed seconds for cuda gaussian with image: pnglogo-blk_1024x768.png = 197
+Needed seconds for opencv ColorConversion with image: pnglogo-blk_1024x768.png = 112
+im name:universum_8192 x 8192.jpg
+Needed seconds for cuda gaussian with image: universum_8192 x 8192.jpg = 9884
+Needed seconds for opencv ColorConversion with image: universum_8192 x 8192.jpg = 5787
