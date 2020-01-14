@@ -92,25 +92,6 @@ __global__ void dev_applyGaussianALL(unsigned char* dev_data, unsigned char* dev
 
 	int currentChannel = currentIndex % channels;
 
-	/*int imageYSource = currentIndex / (channels * imageWidth);
-	int imageXSource = currentIndex % (channels * imageWidth);*/
-
-	//int cuttedAwayTotal = channels * (filterHeight / 2);
-
-	//int newImageHeight = channels * (imageHeight - filterHeight + 1);
-	//int newImageWidth = channels * (imageWidth - filterHeight + 1);
-
-
-	//dev_dataResult[0] = dev_data[55910801];// tmp; // /5
-
-
-
-
-	//// max = 7000000 with block- and grid-dim = 1
-	//for (int i = 0; i < 1; i++) {
-	//	dev_dataResult[0] = 1;
-	//}
-
 
 	if (!(imageYSource < cuttedAway || imageYSource >(imageHeight - 1 - cuttedAway) || imageXSource < cuttedAway * channels || imageXSource >(imageWidth * channels - 1 - cuttedAway * channels)))
 	{
@@ -120,14 +101,18 @@ __global__ void dev_applyGaussianALL(unsigned char* dev_data, unsigned char* dev
 			//width
 			for (int w = 0; w < filterHeight; w++)
 			{
-
 				double tmp = filter[h * filterHeight + w] * dev_data[((imageYSource + h) * (channels * imageWidth) + (imageXSource + (channels * w)))];
-
-				dev_dataResult[((imageYSource - cuttedAway) * (channels * newImageWidth) + (imageXSource - channels * cuttedAway))] += tmp; //			dev_dataResult[(channels * imageYSource - channels * cuttedAway) * newImageWidth + (channels * imageXSource - channels * cuttedAway)] += tmp;
+				dev_dataResult[((imageYSource - cuttedAway) * (channels * newImageWidth) + (imageXSource - channels * cuttedAway))] += tmp;
 
 			}
 		}
 	}
+
+	//// max = 7000000 with block- and grid-dim = 1
+//for (int i = 0; i < 1; i++) {
+//	dev_dataResult[0] = 1;
+//}
+
 }
 
 unsigned char * convertRGBToYCBCR(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims)
@@ -318,32 +303,29 @@ double* createGaussianFilter(int width, int height, double sigma)
 
   
     // normalising the Kernel 
-    for (int i = 0; i < height; ++i) 
-    {
-        for (int j = 0; j < height; ++j)
-        {
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < height; ++j) {
 			kernel[i][j] /= sum;
         }
 	} 
 
 	double* kernelFlat = (double*)malloc(height * height * sizeof(double));
 
-	for (int h = 0; h < height; h++)
-	{
-		for (int w = 0; w < height; w++)
-		{
-			// y*width+width_pos
-			kernelFlat[h * height + w] = kernel[h][w];
+	for (int h = 0; h < height; h++){
+		for (int w = 0; w < height; w++){
+			kernelFlat[h * height + w] = kernel[h][w]; // y*width+width_pos
 		}
 	}
 
 	return kernelFlat;
 }
 
-// data: BGR-Sequence of the input channels of data
-unsigned char* applyGaussianFilter(unsigned char* data, int dataSize, dim3 gridDims, dim3 blockDims, const int channelsPara, int imageHeight, int imageWidth, int filterHeight, double sigma)
+unsigned char* applyGaussianFilter(unsigned char* data, int dataSize, dim3 gridDims,
+									dim3 blockDims, const int channelsPara, int imageHeight,
+									int imageWidth, int filterHeight, double sigma)
 {
 	double* filter = createGaussianFilter(filterHeight, filterHeight, sigma);
-	unsigned char* resultData = gaussianAllChannel(data, dataSize, gridDims, blockDims, filter, imageHeight, imageWidth, filterHeight);
+	unsigned char* resultData = gaussianAllChannel(data, dataSize, gridDims, blockDims,
+													filter, imageHeight, imageWidth, filterHeight);
 	return resultData;
 }
