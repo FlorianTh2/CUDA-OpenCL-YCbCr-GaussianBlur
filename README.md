@@ -7,15 +7,15 @@ Collaborator: Phillip Friedel
  - Clone repository
  - setup environment (see Setup)
  - Execution:
-       - Help: ```cuda/cuda/x64/Debug/cuda.exe --help```
-       - Example YCbCr-1-Image:
-           - ```cuda/cuda/x64/Debug/cuda.exe --task "0" --image_name "cuda/cuda/images/dice_600x800.png"```
-       - Example Gauss-1-Image:
-           - ```cuda/cuda/x64/Debug/cuda.exe --task "1" --image_name "cuda/cuda/images/dice_600x800.png" --sigma 20 --filter_height 7```
-       - Example YCbCr-All-Images-In-Path:
-           - ```cuda/cuda/x64/Debug/cuda.exe --task "2" --image_name "cuda/cuda/images/"```
-       - Example Gauss-All-Images-In-Path:
-           - ```cuda/cuda/x64/Debug/cuda.exe --task "3" --image_name "cuda/cuda/images/" --sigma 5 --filter_height 1```
+     - Help: ```cuda/cuda/x64/Debug/cuda.exe --help```
+     - Example YCbCr-1-Image:
+         - ```cuda/cuda/x64/Debug/cuda.exe --task "0" --image_name "cuda/cuda/images/dice_600x800.png"```
+     - Example Gauss-1-Image:
+         - ```cuda/cuda/x64/Debug/cuda.exe --task "1" --image_name "cuda/cuda/images/dice_600x800.png" --sigma 20 --filter_height 7```
+     - Example YCbCr-All-Images-In-Path:
+         - ```cuda/cuda/x64/Debug/cuda.exe --task "2" --image_name "cuda/cuda/images/"```
+     - Example Gauss-All-Images-In-Path:
+         - ```cuda/cuda/x64/Debug/cuda.exe --task "3" --image_name "cuda/cuda/images/" --sigma 5 --filter_height 1```
 
 ## Learned
  - C, C++
