@@ -1,11 +1,5 @@
 #include "main.h"
-// zum Einbinden: 1. zip herunterladen 2. entpacken 3. c/c++ compiler als additional library hinzufügen (root pfad des ordners) 4. in Ordner die .bar aufführen+ warten + .b2 ausführen+waren 5. dem linker als additional library hinzufügen (root/stage/lib-pfad)
-#include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
-#include <iostream>
-#include <iterator>
-#include <algorithm>
-#include <math.h>
+
 
 
 
@@ -17,7 +11,7 @@
 namespace po = boost::program_options;
 
 
-// deviceQuery(): gtx 750 ti
+// deviceQuery()
 //Max dimension size of a thread block(x, y, z) : (1024, 1024, 64) -> (1024,1024,61) means that max threads are 1024 and not 1024*1024*64, that are max dimension limits i guess
 //Max dimension size of a grid size(x, y, z) : (2147483647, 65535, 65535)
 //Total amount of constant memory : 65536 bytes
@@ -49,7 +43,7 @@ void programStartArgumentHandling(int argc, char** argv)
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		// required
-		("task", po::value<int>(), "set task: 0=rgb2YCbCr; 1=gaussian_blur; 2=all_ycbcr_all_images; 3=gaussian_all_images")
+		("task", po::value<int>(), "set task:\n0=rgb2YCbCr (result will be displayed)\n1=gaussian_blur (result will be displayed)\n2=all_ycbcr_all_images (result will be stored in 'outputImages')\n3=gaussian_all_images (result will be stored in 'outputImages')")
 		("image_name", po::value<string>(), "set name / path of image to read")
 
 		// only for gaussian blur
@@ -77,7 +71,12 @@ void programStartArgumentHandling(int argc, char** argv)
 
 		if (vm["task"].as<int>() == 0)
 		{
-			colorConversionYCBCR(vm["image_name"].as<string>());
+			displayImage(colorConversionYCBCR(vm["image_name"].as<string>()));
+		}
+		else if(vm["task"].as<int>() == 2)
+		{
+			cout << "Task 2 started!" << endl;
+			allYCBCR(vm["image_name"].as<string>());
 		}
 		else if(vm.count("sigma") && vm["sigma"].as<double>() > 0 && vm.count("filter_height") && (vm["filter_height"].as<int>() % 2) !=0)
 		{
@@ -91,11 +90,7 @@ void programStartArgumentHandling(int argc, char** argv)
 				cout << "Task 3 started!" << endl;
 				allGaussian(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
 			}
-			else
-			{
-				cout << "Task 2 started!" << endl;
-				allYCBCR(vm["image_name"].as<string>(), vm["sigma"].as<double>(), vm["filter_height"].as<int>());
-			}
+
 		}
 		else
 		{
@@ -104,7 +99,8 @@ void programStartArgumentHandling(int argc, char** argv)
 	}
 	else
 	{
-		cout << "Error at argument parsing" << endl;
+		if(!vm.count("help"))
+			cout << "Error at argument parsing" << endl;
 	}
 
 	if (vm.count("help")) {
@@ -189,7 +185,7 @@ cv::Mat colorConversionYCBCR(string image_name)
 }
 
 
-void allYCBCR(string image_name, double sigmaPara, int filter_height)
+void allYCBCR(string image_name)
 {
 	string outputFolder = "outputImages/";
 	createFolderIfNotExistent(outputFolder);

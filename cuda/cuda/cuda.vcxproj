@@ -19,18 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cudaTest.cuh" />
+    <ClInclude Include="cuda.cuh" />
     <ClInclude Include="main.h" />
-    <ClInclude Include="opencvTest.h" />
+    <ClInclude Include="opencv.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="cudaTest.cu" />
+    <CudaCompile Include="cuda.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="opencvTest.cpp" />
+    <ClCompile Include="opencv.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <ItemGroup>
